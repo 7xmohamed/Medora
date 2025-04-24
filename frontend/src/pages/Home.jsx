@@ -1,7 +1,8 @@
 /* eslint-disable no-unused-vars */
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import ModelViewer from '../components/3D/ModelViewer';
 
 export default function HomePage() {
     const [location, setLocation] = useState(null);
@@ -137,14 +138,10 @@ export default function HomePage() {
                             transition={{ duration: 0.8 }}
                             className="hidden lg:block relative"
                         >
-                            <div className="relative w-full h-[600px]">
-                                <div className="absolute inset-0 bg-gradient-to-br from-violet-600/20 to-cyan-600/20 rounded-full blur-3xl"></div>
-                                <div className="absolute inset-0 bg-gradient-to-br from-violet-600 to-cyan-600 rounded-full blur-2xl opacity-20 animate-pulse"></div>
-                                <img
-                                    src="/images/doctor.png"
-                                    alt="Healthcare Professional"
-                                    className="relative z-10 w-full h-full object-contain mix-blend-luminosity hover:mix-blend-normal transition-all duration-500"
-                                />
+                            <div className="relative w-full h-[600px]"> {/* Increased height to 600px */}
+                                <Suspense fallback={<div className="w-full h-full flex items-center justify-center text-white">Loading 3D Model...</div>}>
+                                    <ModelViewer />
+                                </Suspense>
                             </div>
                         </motion.div>
                     </div>
