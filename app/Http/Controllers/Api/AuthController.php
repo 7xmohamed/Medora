@@ -18,7 +18,7 @@ class AuthController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'unique:users'],
             'password' => ['required', 'confirmed', Password::defaults()],
-            'role' => ['required', 'in:doctor,laboratory,patient'],
+            'role' => ['required', 'in:doctor,patient'],
             'phone' => ['required', 'string'],
             'address' => ['required', 'string'],
         ] + $this->getRoleSpecificRules($request->role));
@@ -29,8 +29,6 @@ class AuthController extends Controller
         // Handle file uploads based on role
         if ($request->role === 'doctor') {
             $userData += $this->handleDoctorFiles($request);
-        } elseif ($request->role === 'laboratory') {
-            $userData += $this->handleLaboratoryFiles($request);
         }
 
         $user = User::create($userData);
@@ -95,11 +93,6 @@ class AuthController extends Controller
             ];
         }
         
-        if ($role === 'laboratory') {
-            return [
-                'laboratory_license' => ['required', 'image'],
-            ];
-        }
 
         return [];
     }
@@ -110,13 +103,6 @@ class AuthController extends Controller
             'niom' => $request->niom,
             'id_card_front' => $request->file('id_card_front')->store('doctors/id-cards', 'public'),
             'id_card_back' => $request->file('id_card_back')->store('doctors/id-cards', 'public'),
-        ];
-    }
-
-    private function handleLaboratoryFiles(Request $request): array
-    {
-        return [
-            'laboratory_license' => $request->file('laboratory_license')->store('labs/licenses', 'public'),
         ];
     }
 }

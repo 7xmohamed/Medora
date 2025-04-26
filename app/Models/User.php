@@ -15,7 +15,6 @@ class User extends Authenticatable
 
     const ROLE_ADMIN = 'admin';
     const ROLE_DOCTOR = 'doctor';
-    const ROLE_LABORATORY = 'laboratory';
     const ROLE_PATIENT = 'patient';
 
     /**
@@ -34,7 +33,6 @@ class User extends Authenticatable
         'id_card_front',
         'id_card_back',
         'niom',
-        'laboratory_license',
     ];
 
     /**
@@ -65,11 +63,6 @@ class User extends Authenticatable
     public function isDoctor(): bool
     {
         return $this->role === self::ROLE_DOCTOR;
-    }
-
-    public function isLaboratory(): bool
-    {
-        return $this->role === self::ROLE_LABORATORY;
     }
 
     public function isPatient(): bool

@@ -8,7 +8,6 @@ import RegisterPage from './pages/Register';
 import DashboardPage from './pages/Dashboard';
 import NotFoundPage from './pages/NotFound';
 import DoctorRoutes from './routes/DoctorRoutes';
-import LabRoutes from './routes/LabRoutes';
 import PatientRoutes from './routes/PatientRoutes';
 
 const PrivateRoute = ({ children, roles }) => {
@@ -47,12 +46,6 @@ function App() {
             <Route path="doctor/*" element={
               <PrivateRoute roles={['doctor']}>
                 <DoctorRoutes />
-              </PrivateRoute>
-            } />
-
-            <Route path="lab/*" element={
-              <PrivateRoute roles={['laboratory']}>
-                <LabRoutes />
               </PrivateRoute>
             } />
 

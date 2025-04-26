@@ -17,27 +17,24 @@ return new class extends Migration
             $table->string('name');
             $table->string('email')->unique();
             $table->string('password');
-            $table->string('phone');  // Optional field
-            $table->string('address')->nullable(); // Added address field
-            $table->enum('role', ['laboratory', 'doctor', 'patient', 'admin']); // Role added here
+            $table->string('phone');
+            $table->string('address')->nullable();
+            $table->enum('role', ['doctor', 'patient', 'admin']);
             $table->string('id_card_front')->nullable();
             $table->string('id_card_back')->nullable();
             $table->string('niom')->nullable(); // numéro d'inscription à l'Ordre des Médecins
-            $table->string('laboratory_license')->nullable(); // Laboratory License column
             $table->timestamp('email_verified_at')->nullable();
             $table->rememberToken();
-            $table->softDeletes(); // Adds a 'deleted_at' column for soft deletes
+            $table->softDeletes();
             $table->timestamps();
         });
 
-        // Create 'password_reset_tokens' table
         Schema::create('password_reset_tokens', function (Blueprint $table) {
             $table->string('email')->primary();
             $table->string('token');
             $table->timestamp('created_at')->nullable();
         });
 
-        // Create 'sessions' table
         Schema::create('sessions', function (Blueprint $table) {
             $table->string('id')->primary();
             $table->foreignId('user_id')->nullable()->index();
