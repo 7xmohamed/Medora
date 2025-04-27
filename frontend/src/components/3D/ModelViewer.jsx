@@ -11,8 +11,15 @@ import {
 } from '@react-three/drei';
 import { useThree } from '@react-three/fiber';
 
-function Loader() {
+function Loader({ setIsLoaded }) {
     const { progress } = useProgress();
+
+    useEffect(() => {
+        if (progress === 100) {
+            setIsLoaded(true);
+        }
+    }, [progress, setIsLoaded]);
+
     return (
         <Html center>
             <div className="flex flex-col items-center">
@@ -25,7 +32,7 @@ function Loader() {
     );
 }
 
-function Model({ onLoaded }) {
+function Model() {
     const { scene } = useGLTF('/models/free_download_male_surgical_doctor_working_222.glb');
     const { gl } = useThree();
 
@@ -38,8 +45,7 @@ function Model({ onLoaded }) {
                 child.frustumCulled = true;
             }
         });
-        onLoaded?.();
-    }, [scene, gl, onLoaded]);
+    }, [scene, gl]);
 
     return (
         <Float
@@ -49,8 +55,8 @@ function Model({ onLoaded }) {
         >
             <primitive
                 object={scene}
-                scale={0.0451}  // Increased scale by 2%
-                position={[0, -3.8, 0]}  // Slightly lowered vertical position
+                scale={0.0451}
+                position={[0, -3.8, 0]}
                 rotation={[0, Math.PI * 0.25, 0]}
                 dispose={null}
             />
@@ -64,16 +70,16 @@ export default function ModelViewer() {
     return (
         <Canvas
             camera={{
-                position: [0, 3, 9], // Moved camera further back and higher to fit the larger model
-                fov: 55, // Wider field of view to accommodate the larger model
+                position: [0, 3, 9],
+                fov: 55,
                 near: 0.1,
                 far: 100
             }}
-            style={{ width: '100%', height: '100%', maxHeight: '600px' }} // Increased Canvas height to 600px
+            style={{ width: '100%', height: '100%', maxHeight: '600px' }}
             dpr={[1, 2]}
         >
-            <Suspense fallback={<Loader />}>
-                <Model onLoaded={() => setIsLoaded(true)} />
+            <Suspense fallback={<Loader setIsLoaded={setIsLoaded} />}>
+                <Model />
                 <Environment preset="city" intensity={0.5} />
                 <ambientLight intensity={0.8} />
                 <spotLight

@@ -44,7 +44,7 @@ export default function HomePage() {
                 {/* Main Content */}
                 <div className="max-w-7xl mx-auto w-full relative z-10">
                     <div className="grid lg:grid-cols-2 gap-12 items-center">
-                        {/* Left Column - Text Content */}
+                        {/* Left Column */}
                         <motion.div
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
@@ -69,7 +69,7 @@ export default function HomePage() {
                                     </span>
                                 </h1>
                                 <p className="text-xl text-gray-400 mb-8">
-                                    Connect with top medical professionals instantly. Quality healthcare at your fingertips, anytime, anywhere.
+                                    Find doctors. Book visits. Get better. All in person, all in one place.
                                 </p>
                             </div>
 
@@ -131,14 +131,14 @@ export default function HomePage() {
                             </motion.div>
                         </motion.div>
 
-                        {/* Right Column - Decorative Element */}
+                        {/* Right Column */}
                         <motion.div
                             initial={{ opacity: 0, scale: 0.9 }}
                             animate={{ opacity: 1, scale: 1 }}
                             transition={{ duration: 0.8 }}
                             className="hidden lg:block relative"
                         >
-                            <div className="relative w-full h-[600px]"> {/* Increased height to 600px */}
+                            <div className="relative w-full h-[600px]">
                                 <Suspense fallback={<div className="w-full h-full flex items-center justify-center text-white">Loading 3D Model...</div>}>
                                     <ModelViewer />
                                 </Suspense>
@@ -173,105 +173,41 @@ export default function HomePage() {
                                     </svg>
                                 ),
                                 title: "Verified Professionals",
-                                description: "All doctors are thoroughly vetted and licensed"
+                                description: "All doctors are thoroughly vetted to ensure you receive top-quality care."
                             },
                             {
                                 icon: (
                                     <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12h.01M12 12h.01M9 12h.01M12 20c4.418 0 8-3.582 8-8s-3.582-8-8-8-8 3.582-8 8 3.582 8 8 8z" />
                                     </svg>
                                 ),
-                                title: "Instant Booking",
-                                description: "Schedule appointments in just a few taps"
+                                title: "Seamless Appointments",
+                                description: "Book, manage, and attend appointments easily, all from one platform."
                             },
                             {
                                 icon: (
                                     <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 13l4 4L19 7" />
                                     </svg>
                                 ),
-                                title: "Transparent Pricing",
-                                description: "No hidden fees or surprise bills"
+                                title: "Trusted by Thousands",
+                                description: "Our platform is trusted by thousands of patients worldwide for quality care."
                             }
                         ].map((feature, index) => (
                             <motion.div
                                 key={index}
-                                initial={{ opacity: 0, y: 50 }}
+                                initial={{ opacity: 0, y: 20 }}
                                 whileInView={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 0.6, delay: index * 0.1 }}
+                                transition={{ delay: 0.2 * index }}
                                 viewport={{ once: true }}
-                                className="bg-gray-800 p-8 rounded-2xl hover:bg-gray-700 transition-all duration-300"
+                                className="p-6 rounded-xl bg-gray-800"
                             >
-                                <div className="flex justify-center mb-6">{feature.icon}</div>
-                                <h3 className="text-2xl font-bold text-white mb-4">{feature.title}</h3>
+                                <div className="mb-4">{feature.icon}</div>
+                                <h3 className="text-xl font-bold mb-2">{feature.title}</h3>
                                 <p className="text-gray-400">{feature.description}</p>
                             </motion.div>
                         ))}
                     </div>
-                </div>
-            </section>
-
-            {/* Testimonial Section */}
-            <section className="py-24 bg-black relative overflow-hidden">
-                <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10"></div>
-                <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative">
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        whileInView={{ opacity: 1 }}
-                        transition={{ duration: 0.8 }}
-                        viewport={{ once: true }}
-                        className="bg-gray-900/80 backdrop-blur-sm border border-gray-800 rounded-3xl p-12"
-                    >
-                        <svg className="w-12 h-12 text-white mb-8 opacity-70" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z" />
-                        </svg>
-                        <blockquote className="text-2xl md:text-3xl font-medium text-white mb-8 leading-relaxed">
-                            "Medora completely transformed how I manage my practice. The platform saves me hours each week and my patients love the seamless booking experience."
-                        </blockquote>
-                        <div className="flex items-center">
-                            <div className="h-14 w-14 rounded-full bg-gray-700 flex items-center justify-center text-white font-bold mr-4">
-                                DJ
-                            </div>
-                            <div>
-                                <p className="text-white font-bold">Dr. James Wilson</p>
-                                <p className="text-gray-400">Cardiologist, Metropolitan Hospital</p>
-                            </div>
-                        </div>
-                    </motion.div>
-                </div>
-            </section>
-
-            {/* CTA Section */}
-            <section className="py-24 px-4 sm:px-6 lg:px-8">
-                <div className="max-w-6xl mx-auto">
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        whileInView={{ opacity: 1, scale: 1 }}
-                        transition={{ duration: 0.6 }}
-                        viewport={{ once: true }}
-                        className="bg-gradient-to-r from-gray-800 to-gray-900 p-1 rounded-3xl shadow-2xl"
-                    >
-                        <div className="bg-black/90 rounded-3xl p-12 text-center backdrop-blur-sm">
-                            <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">Ready to experience better healthcare?</h2>
-                            <p className="text-xl text-gray-400 mb-10 max-w-3xl mx-auto">
-                                Join thousands of patients and doctors using Medora today
-                            </p>
-                            <div className="flex flex-col sm:flex-row justify-center gap-6">
-                                <Link
-                                    to="/register?role=patient"
-                                    className="bg-white text-black px-10 py-4 rounded-xl font-bold hover:bg-gray-100 transition-all duration-300 shadow-lg hover:shadow-xl"
-                                >
-                                    I'm a Patient
-                                </Link>
-                                <Link
-                                    to="/register?role=doctor"
-                                    className="bg-transparent border-2 border-white text-white px-10 py-4 rounded-xl font-bold hover:bg-white/10 transition-all duration-300 shadow-lg hover:shadow-white/20"
-                                >
-                                    I'm a Doctor
-                                </Link>
-                            </div>
-                        </div>
-                    </motion.div>
                 </div>
             </section>
         </div>
