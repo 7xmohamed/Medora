@@ -7,17 +7,17 @@ export default function Navbar() {
     const { user, logout } = useAuth();
 
     return (
-        <nav className="bg-black/90 backdrop-blur-lg border-b border-cyan-500/20 fixed w-full z-50">
+        <nav className="bg-gray-50/95 backdrop-blur-lg border-b border-gray-200 fixed w-full z-50 shadow-sm">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex justify-between h-16 items-center">
                     <Link to="/" className="flex items-center space-x-2 group">
                         <motion.div
                             whileHover={{ rotate: 10, scale: 1.1 }}
-                            className="h-9 w-9 bg-[conic-gradient(at_top_right,_var(--tw-gradient-stops))] from-violet-600 via-cyan-500 to-purple-500 rounded-lg flex items-center justify-center shadow-lg shadow-cyan-500/30"
+                            className="h-9 w-9 bg-[conic-gradient(at_top_right,_var(--tw-gradient-stops))] from-blue-600 via-teal-500 to-indigo-500 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/20"
                         >
                             <span className="text-white text-xl font-bold">M</span>
                         </motion.div>
-                        <span className="text-xl font-bold bg-gradient-to-r from-cyan-400 to-violet-400 bg-clip-text text-transparent">
+                        <span className="text-xl font-bold bg-gradient-to-r from-teal-500 to-blue-500 bg-clip-text text-transparent">
                             Medora
                         </span>
                     </Link>
@@ -27,13 +27,13 @@ export default function Navbar() {
                             <>
                                 <Link
                                     to="/dashboard"
-                                    className="text-sm px-4 py-2 text-cyan-100 hover:text-white transition-all hover:bg-black/50 rounded-lg border border-cyan-500/30 hover:border-cyan-400/50 hover:shadow-[0_0_10px_-3px_rgba(34,211,238,0.3)]"
+                                    className="text-sm px-4 py-2 text-gray-700 hover:text-gray-900 transition-all hover:bg-gray-100 rounded-lg border border-gray-200 hover:border-gray-300"
                                 >
                                     Dashboard
                                 </Link>
                                 <button
                                     onClick={logout}
-                                    className="text-sm px-4 py-2 text-rose-300 hover:text-white transition-all hover:bg-rose-900/30 rounded-lg border border-rose-500/30 hover:border-rose-400/50 hover:shadow-[0_0_10px_-3px_rgba(244,63,94,0.3)]"
+                                    className="text-sm px-4 py-2 text-rose-500 hover:text-rose-700 transition-all hover:bg-rose-50 rounded-lg border border-rose-200 hover:border-rose-300"
                                 >
                                     Logout
                                 </button>
@@ -42,7 +42,7 @@ export default function Navbar() {
                             <>
                                 <Link
                                     to="/login"
-                                    className="text-sm px-4 py-2 text-cyan-100 hover:text-white transition-all hover:bg-black/50 rounded-lg border border-cyan-500/30 hover:border-cyan-400/50 hover:shadow-[0_0_10px_-3px_rgba(34,211,238,0.3)]"
+                                    className="text-sm px-4 py-2 text-gray-700 hover:text-gray-900 transition-all hover:bg-gray-100 rounded-lg border border-gray-200 hover:border-gray-300"
                                 >
                                     Login
                                 </Link>
@@ -52,7 +52,7 @@ export default function Navbar() {
                                 >
                                     <Link
                                         to="/register"
-                                        className="text-sm px-4 py-2 bg-[conic-gradient(at_top_right,_var(--tw-gradient-stops))] from-violet-600 via-cyan-500 to-purple-500 text-white rounded-lg hover:shadow-lg hover:shadow-cyan-500/40 transition-all border border-cyan-400/40"
+                                        className="text-sm px-4 py-2 bg-gradient-to-r from-blue-500 to-teal-500 text-white rounded-lg hover:shadow-lg hover:shadow-blue-500/20 transition-all"
                                     >
                                         Register
                                     </Link>

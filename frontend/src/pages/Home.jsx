@@ -1,8 +1,20 @@
 /* eslint-disable no-unused-vars */
-import { useState, Suspense } from 'react';
+import { useState, Suspense, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import ModelViewer from '../components/3D/ModelViewer';
+
+// Delayed ModelViewer wrapper to prevent EnvironmentCube render error
+function DelayedModelViewer() {
+    const [show, setShow] = useState(false);
+
+    useEffect(() => {
+        const timer = setTimeout(() => setShow(true), 100);
+        return () => clearTimeout(timer);
+    }, []);
+
+    return show ? <ModelViewer /> : null;
+}
 
 export default function HomePage() {
     const [location, setLocation] = useState(null);
@@ -140,7 +152,7 @@ export default function HomePage() {
                         >
                             <div className="relative w-full h-[600px]">
                                 <Suspense fallback={<div className="w-full h-full flex items-center justify-center text-white">Loading 3D Model...</div>}>
-                                    <ModelViewer />
+                                    <DelayedModelViewer />
                                 </Suspense>
                             </div>
                         </motion.div>
