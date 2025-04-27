@@ -45,8 +45,6 @@ export default function Footer() {
                             title: "Navigation",
                             links: [
                                 { name: "Home", to: "/" },
-                                { name: "Find Doctors", to: "/doctors" },
-                                { name: "Services", to: "/services" },
                                 { name: "About Us", to: "/about" },
                             ]
                         },

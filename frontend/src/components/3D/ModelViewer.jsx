@@ -37,6 +37,8 @@ function Model() {
     const { gl } = useThree();
 
     useEffect(() => {
+        if (!scene) return;
+
         gl.physicallyCorrectLights = true;
         scene.traverse((child) => {
             if (child.isMesh) {
@@ -47,7 +49,7 @@ function Model() {
         });
     }, [scene, gl]);
 
-    return (
+    return scene ? (
         <Float
             speed={0.3}
             rotationIntensity={0.2}
@@ -61,11 +63,29 @@ function Model() {
                 dispose={null}
             />
         </Float>
-    );
+    ) : null;
 }
 
 export default function ModelViewer() {
     const [isLoaded, setIsLoaded] = useState(false);
+    const [error, setError] = useState(null);
+
+    useEffect(() => {
+        // Verify model file exists
+        fetch('/models/free_download_male_surgical_doctor_working_222.glb')
+            .then(response => {
+                if (!response.ok) throw new Error('Model not found');
+            })
+            .catch(err => setError(err.message));
+    }, []);
+
+    if (error) {
+        return (
+            <div className="w-full h-full flex items-center justify-center text-red-400">
+                Error loading 3D model: {error}
+            </div>
+        );
+    }
 
     return (
         <Canvas
