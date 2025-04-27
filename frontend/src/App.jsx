@@ -11,6 +11,7 @@ import DoctorRoutes from './routes/DoctorRoutes';
 import PatientRoutes from './routes/PatientRoutes';
 import HomeWithLocation from './pages/HomeWithLocation';
 import AboutUs from './pages/medora/AboutUs';
+import ContactUs from './pages/medora/ContactUs';
 
 function App() {
   return (
@@ -23,6 +24,7 @@ function App() {
             <Route path="login" element={<LoginPage />} />
             <Route path="register" element={<RegisterPage />} />
             <Route path='about' element={<AboutUs />} />
+            <Route path='contact' element={<ContactUs />} />
 
             {/* Location-based routes */}
             <Route path=":lang">
@@ -30,7 +32,8 @@ function App() {
                 <Route path=":city" element={<HomeWithLocation />} />
                 <Route path=":city/:street" element={<HomeWithLocation />} />
               </Route>
-            </Route>
+            </Route>            {/* Catch all route */}
+
 
             {/* Protected routes */}
             <Route
@@ -61,7 +64,6 @@ function App() {
               }
             />
 
-            {/* Catch all route */}
             <Route path="*" element={<NotFoundPage />} />
           </Route>
         </Routes>

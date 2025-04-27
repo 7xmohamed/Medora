@@ -1,6 +1,9 @@
 /* eslint-disable no-unused-vars */
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
+import { FaXTwitter, FaFacebookF, FaInstagram, FaLinkedinIn } from "react-icons/fa6";
+
+
 
 export default function Footer() {
     return (
@@ -26,7 +29,7 @@ export default function Footer() {
                         <p className="text-cyan-100/80 text-sm leading-relaxed">
                             Revolutionizing healthcare through seamless doctor-patient connections with cutting-edge technology.
                         </p>
-                        <div className="flex space-x-4">
+                        {/* <div className="flex space-x-4">
                             {['twitter', 'facebook', 'instagram', 'linkedin'].map((social) => (
                                 <motion.div
                                     key={social}
@@ -34,6 +37,24 @@ export default function Footer() {
                                     className="h-9 w-9 rounded-full bg-cyan-900/30 border border-cyan-500/30 flex items-center justify-center text-cyan-300 hover:text-white cursor-pointer hover:bg-cyan-500/20 hover:border-cyan-400/50 hover:shadow-[0_0_10px_-3px_rgba(34,211,238,0.3)]"
                                 >
                                     <span className="text-xs">{social[0].toUpperCase()}</span>
+                                </motion.div>
+                            ))}
+                        </div> */}
+
+                        <div className="flex space-x-4">
+                            {[
+                                { icon: <FaXTwitter className="w-4 h-4" />, name: 'x-twitter' },
+                                { icon: <FaFacebookF className="w-4 h-4" />, name: 'facebook' },
+                                { icon: <FaInstagram className="w-4 h-4" />, name: 'instagram' },
+                                { icon: <FaLinkedinIn className="w-4 h-4" />, name: 'linkedin' }
+                            ].map((social) => (
+                                <motion.div
+                                    key={social.name}
+                                    whileHover={{ y: -3, scale: 1.1 }}
+                                    transition={{ type: 'spring', stiffness: 400, damping: 10 }}
+                                    className="h-9 w-9 rounded-full bg-cyan-900/30 border border-cyan-500/30 flex items-center justify-center text-cyan-300 hover:text-white cursor-pointer hover:bg-cyan-500/20 hover:border-cyan-400/50 hover:shadow-[0_0_10px_-3px_rgba(34,211,238,0.3)]"
+                                >
+                                    {social.icon}
                                 </motion.div>
                             ))}
                         </div>

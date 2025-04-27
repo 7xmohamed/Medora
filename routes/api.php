@@ -1,11 +1,11 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\ContactController;
 use Illuminate\Support\Facades\Route;
 
-// Auth check route
-Route::get('/auth/check', [AuthController::class, 'check'])
-    ->middleware('auth:sanctum');
+// Public routes
+Route::post('/contact', [ContactController::class, 'store']);
 
 // Guest only routes
 Route::middleware('guest')->group(function () {
@@ -22,12 +22,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('doctor')->middleware('role:doctor')->group(function () {
         Route::get('/dashboard', 'DoctorController@dashboard');
         Route::get('/orders', 'DoctorController@orders');
-    });
-
-    // Laboratory routes  
-    Route::prefix('lab')->middleware('role:laboratory')->group(function () {
-        Route::get('/dashboard', 'LaboratoryController@dashboard');
-        Route::get('/tests', 'LaboratoryController@tests');
     });
 
     // Patient routes

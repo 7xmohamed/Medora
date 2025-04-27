@@ -14,8 +14,9 @@ export default function ContactUs() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitSuccess, setSubmitSuccess] = useState(false);
 
+    // Client-side validation patterns
     const validate = {
-        name: /^[a-zA-Z\u00C0-\u024F\u0400-\u04FF\s'-]{2,50}$/,
+        name: /^[\p{L}\s'-]{2,50}$/u,
         email: /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/,
         subject: /^[\p{L}\d\s\-.,!?]{5,100}$/u,
         message: /^[\s\S]{10,1000}$/
@@ -27,7 +28,7 @@ export default function ContactUs() {
             ...prev,
             [name]: value
         }));
-        // Clear error when user types
+
         if (errors[name]) {
             setErrors(prev => ({ ...prev, [name]: '' }));
         }
@@ -134,13 +135,7 @@ export default function ContactUs() {
             {/* Contact Form Section */}
             <section className="py-20">
                 <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.8 }}
-                        viewport={{ once: true }}
-                        className="p-8 rounded-xl bg-gray-900 border border-gray-800"
-                    >
+                    
                         {submitSuccess ? (
                             <div className="text-center py-8">
                                 <div className="w-16 h-16 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -253,7 +248,6 @@ export default function ContactUs() {
                                 </form>
                             </>
                         )}
-                    </motion.div>
                 </div>
             </section>
         </div>
