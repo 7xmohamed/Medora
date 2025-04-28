@@ -5,42 +5,34 @@ import Layout from './components/Layout';
 import HomePage from './pages/Home';
 import LoginPage from './pages/Login';
 import RegisterPage from './pages/Register';
-import DashboardPage from './pages/Dashboard';
 import NotFoundPage from './pages/NotFound';
 import DoctorRoutes from './routes/DoctorRoutes';
 import PatientRoutes from './routes/PatientRoutes';
 import HomeWithLocation from './pages/HomeWithLocation';
 import AboutUs from './pages/medora/AboutUs';
 import ContactUs from './pages/medora/ContactUs';
+import AdminDashboard from './pages/admin/AdminDashboard';
 
 function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
         <Routes>
+          {/* Routes with Layout */}
           <Route element={<Layout />}>
             {/* Public routes */}
             <Route index element={<HomePage />} />
             <Route path="login" element={<LoginPage />} />
             <Route path="register" element={<RegisterPage />} />
-            <Route path='about' element={<AboutUs />} />
-            <Route path='contact' element={<ContactUs />} />
-
-            {/* Location-based routes */}
-            <Route path=":lang">
-              <Route path=":country">
-                <Route path=":city" element={<HomeWithLocation />} />
-                <Route path=":city/:street" element={<HomeWithLocation />} />
-              </Route>
-            </Route>            {/* Catch all route */}
-
+            <Route path="about" element={<AboutUs />} />
+            <Route path="contact" element={<ContactUs />} />
 
             {/* Protected routes */}
             <Route
               path="dashboard/*"
               element={
-                <PrivateRoute>
-                  <DashboardPage />
+                <PrivateRoute adminOnly>
+                  <AdminDashboard />
                 </PrivateRoute>
               }
             />
@@ -63,9 +55,17 @@ function App() {
                 </PrivateRoute>
               }
             />
-
-            <Route path="*" element={<NotFoundPage />} />
           </Route>
+
+          {/* Location-based routes (outside Layout to avoid conflicts) */}
+          <Route path=":lang/:country/:city" element={<HomeWithLocation />} />
+          <Route path=":lang/:country/:city/:street" element={<HomeWithLocation />} />
+
+          {/* Explicit 404 route */}
+          <Route path="/404" element={<NotFoundPage />} />
+
+          {/* Catch-all for unmatched routes */}
+          <Route path="*" element={<Navigate to="/404" replace />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

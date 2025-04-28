@@ -6,6 +6,19 @@ import { motion } from 'framer-motion';
 export default function Navbar() {
     const { user, logout } = useAuth();
 
+    const getDashboardLink = () => {
+        switch (user?.role) {
+            case 'admin':
+                return '/dashboard';
+            case 'doctor':
+                return '/doctor/dashboard';
+            default:
+                return '/404';
+        }
+    };
+
+    const showDashboardLink = user && (user.role === 'admin' || user.role === 'doctor');
+
     return (
         <nav className="bg-gray-50/95 backdrop-blur-lg border-b border-gray-200 fixed w-full z-50 shadow-sm">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -25,12 +38,14 @@ export default function Navbar() {
                     <div className="flex items-center gap-3">
                         {user ? (
                             <>
-                                <Link
-                                    to="/dashboard"
-                                    className="text-sm px-4 py-2 text-gray-700 hover:text-gray-900 transition-all hover:bg-gray-100 rounded-lg border border-gray-200 hover:border-gray-300"
-                                >
-                                    Dashboard
-                                </Link>
+                                {showDashboardLink && (
+                                    <Link
+                                        to={getDashboardLink()}
+                                        className="text-sm px-4 py-2 text-gray-700 hover:text-gray-900 transition-all hover:bg-gray-100 rounded-lg border border-gray-200 hover:border-gray-300"
+                                    >
+                                        {user.role === 'admin' ? 'Admin Dashboard' : 'Dashboard'}
+                                    </Link>
+                                )}
                                 <button
                                     onClick={logout}
                                     className="text-sm px-4 py-2 text-rose-500 hover:text-rose-700 transition-all hover:bg-rose-50 rounded-lg border border-rose-200 hover:border-rose-300"

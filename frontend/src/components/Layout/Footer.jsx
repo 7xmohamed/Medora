@@ -29,17 +29,6 @@ export default function Footer() {
                         <p className="text-cyan-100/80 text-sm leading-relaxed">
                             Revolutionizing healthcare through seamless doctor-patient connections with cutting-edge technology.
                         </p>
-                        {/* <div className="flex space-x-4">
-                            {['twitter', 'facebook', 'instagram', 'linkedin'].map((social) => (
-                                <motion.div
-                                    key={social}
-                                    whileHover={{ y: -3, scale: 1.1 }}
-                                    className="h-9 w-9 rounded-full bg-cyan-900/30 border border-cyan-500/30 flex items-center justify-center text-cyan-300 hover:text-white cursor-pointer hover:bg-cyan-500/20 hover:border-cyan-400/50 hover:shadow-[0_0_10px_-3px_rgba(34,211,238,0.3)]"
-                                >
-                                    <span className="text-xs">{social[0].toUpperCase()}</span>
-                                </motion.div>
-                            ))}
-                        </div> */}
 
                         <div className="flex space-x-4">
                             {[
@@ -73,18 +62,18 @@ export default function Footer() {
                             title: "Support",
                             links: [
                                 { name: "Contact Us", to: "/contact" },
-                                { name: "FAQs", to: "/faqs" },
-                                { name: "Privacy Policy", to: "/privacy" },
-                                { name: "Terms", to: "/terms" },
+                                { name: "FAQs", to: "#" },
+                                { name: "Privacy Policy", to: "#" },
+                                { name: "Terms", to: "#" },
                             ]
                         },
                         {
                             title: "Resources",
                             links: [
-                                { name: "Blog", to: "/blog" },
-                                { name: "Health Tips", to: "/tips" },
-                                { name: "Research", to: "/research" },
-                                { name: "Webinars", to: "/webinars" },
+                                { name: "Blog", to: "#" },
+                                { name: "Health Tips", to: "#" },
+                                { name: "Research", to: "#" },
+                                { name: "Webinars", to: "#" },
                             ]
                         }
                     ].map((section, index) => (

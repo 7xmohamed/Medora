@@ -10,11 +10,22 @@ export function AuthProvider({ children }) {
     const [error, setError] = useState(null);
 
     useEffect(() => {
-        checkAuth();
+        initializeAuth();
         // Set up token refresh interval
         const refreshInterval = setInterval(refreshToken, 1000 * 60 * 14); // Refresh every 14 minutes
         return () => clearInterval(refreshInterval);
     }, []);
+
+    const initializeAuth = async () => {
+        try {
+            // Set CSRF cookie first
+            await api.get('/sanctum/csrf-cookie');
+            // Then check authentication
+            await checkAuth();
+        } catch (error) {
+            console.error('Failed to initialize auth:', error);
+        }
+    };
 
     const checkAuth = async () => {
         try {

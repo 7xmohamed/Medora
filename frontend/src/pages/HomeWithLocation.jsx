@@ -3,6 +3,8 @@ import { useNavigate, useParams } from 'react-router-dom';
 // eslint-disable-next-line no-unused-vars
 import { motion } from 'framer-motion';
 import { mockDoctors, calculateRating } from '../data/mockData';
+import Navbar from '../components/Layout/Navbar';
+import Footer from '../components/Layout/Footer';
 
 function DoctorCard({ doctor, index }) {
     const { average: avgRating, total: totalRatings } = calculateRating(doctor.ratings);
@@ -103,23 +105,27 @@ function HomeWithLocation() {
     }
 
     return (
-        <div className="min-h-screen bg-black text-white py-8">
-            <div className="max-w-6xl mx-auto px-4">
-                <div className="mb-8">
-                    <h1 className="text-3xl font-bold">Doctors in {city}</h1>
-                    {street && <p className="text-gray-400 mt-2">Near {street}</p>}
-                    {locationDetails && (
-                        <p className="text-gray-400 mt-2">
-                            Coordinates: ({locationDetails.lat.toFixed(4)}, {locationDetails.lng.toFixed(4)})
-                        </p>
-                    )}
+        <div className="min-h-screen flex flex-col bg-black text-white">
+            <Navbar />
+            <main className="flex-grow py-8 pt-20 pb-24">
+                <div className="max-w-6xl mx-auto px-4">
+                    <div className="mb-8">
+                        <h1 className="text-3xl font-bold">Doctors in {city}</h1>
+                        {street && <p className="text-gray-400 mt-2">Near {street}</p>}
+                        {locationDetails && (
+                            <p className="text-gray-400 mt-2">
+                                Coordinates: ({locationDetails.lat.toFixed(4)}, {locationDetails.lng.toFixed(4)})
+                            </p>
+                        )}
+                    </div>
+                    <div className="grid gap-6 md:grid-cols-2">
+                        {doctors.map((doctor, index) => (
+                            <DoctorCard key={doctor.id} doctor={doctor} index={index} />
+                        ))}
+                    </div>
                 </div>
-                <div className="grid gap-6 md:grid-cols-2">
-                    {doctors.map((doctor, index) => (
-                        <DoctorCard key={doctor.id} doctor={doctor} index={index} />
-                    ))}
-                </div>
-            </div>
+            </main>
+            <Footer />
         </div>
     );
 }

@@ -1,11 +1,9 @@
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 
 export default function PatientRoutes() {
     return (
         <Routes>
-            <Route path="dashboard" element={<div>Patient Dashboard</div>} />
-            <Route path="tests" element={<div>My Tests</div>} />
-            <Route path="results" element={<div>My Results</div>} />
+            <Route path="*" element={<Navigate to="/404" replace />} />
         </Routes>
     );
 }
