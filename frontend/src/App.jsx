@@ -12,22 +12,16 @@ import HomeWithLocation from './pages/HomeWithLocation';
 import AboutUs from './pages/medora/AboutUs';
 import ContactUs from './pages/medora/ContactUs';
 import AdminDashboard from './pages/admin/AdminDashboard';
+import { DarkModeProvider } from './contexts/DarkModeContext';
+import ForgotPassword from './pages/ForgetPassword';
 
 function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
-        <Routes>
-          {/* Routes with Layout */}
-          <Route element={<Layout />}>
-            {/* Public routes */}
-            <Route index element={<HomePage />} />
-            <Route path="login" element={<LoginPage />} />
-            <Route path="register" element={<RegisterPage />} />
-            <Route path="about" element={<AboutUs />} />
-            <Route path="contact" element={<ContactUs />} />
-
-            {/* Protected routes */}
+      <DarkModeProvider>
+        <BrowserRouter>
+          <Routes>
+            {/* Admin Dashboard Route - Outside Layout */}
             <Route
               path="dashboard/*"
               element={
@@ -37,37 +31,49 @@ function App() {
               }
             />
 
-            {/* Role-specific routes */}
-            <Route
-              path="doctor/*"
-              element={
-                <PrivateRoute roles={['doctor']}>
-                  <DoctorRoutes />
-                </PrivateRoute>
-              }
-            />
+            {/* Routes with Layout */}
+            <Route element={<Layout />}>
+              {/* Public routes */}
+              <Route index element={<HomePage />} />
+              <Route path="login" element={<LoginPage />} />
+              <Route path="register" element={<RegisterPage />} />
+              <Route path="about" element={<AboutUs />} />
+              <Route path="contact" element={<ContactUs />} />
+              <Route path="forget-password" element={<ForgotPassword />} />
 
-            <Route
-              path="patient/*"
-              element={
-                <PrivateRoute roles={['patient']}>
-                  <PatientRoutes />
-                </PrivateRoute>
-              }
-            />
-          </Route>
+              {/* Role-specific routes */}
+              <Route
+                path="doctor/*"
+                element={
+                  <PrivateRoute roles={['doctor']}>
+                    <DoctorRoutes />
+                  </PrivateRoute>
+                }
+              />
 
-          {/* Location-based routes (outside Layout to avoid conflicts) */}
-          <Route path=":lang/:country/:city" element={<HomeWithLocation />} />
-          <Route path=":lang/:country/:city/:street" element={<HomeWithLocation />} />
+              <Route
+                path="patient/*"
+                element={
+                  <PrivateRoute roles={['patient']}>
+                    <PatientRoutes />
+                  </PrivateRoute>
+                }
+              />
+            </Route>
 
-          {/* Explicit 404 route */}
-          <Route path="/404" element={<NotFoundPage />} />
+            {/* Location-based routes (outside Layout to avoid conflicts) */}
+            <Route path=":lang/:country/:city" element={<HomeWithLocation />} />
+            <Route path=":lang/:country/:city/:street" element={<HomeWithLocation />} />
 
-          {/* Catch-all for unmatched routes */}
-          <Route path="*" element={<Navigate to="/404" replace />} />
-        </Routes>
-      </BrowserRouter>
+            {/* Explicit 404 route */}
+            <Route path="/404" element={<NotFoundPage />} />
+
+            {/* Catch-all for unmatched routes */}
+            <Route path="*" element={<Navigate to="/404" replace />} />
+          </Routes>
+        </BrowserRouter>
+      </DarkModeProvider>
+
     </AuthProvider>
   );
 }

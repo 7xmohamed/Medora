@@ -3,7 +3,6 @@ import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
-// Fix Leaflet default icon issue
 const DefaultIcon = new L.Icon({
     iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
     iconRetinaUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png',
@@ -66,13 +65,13 @@ export default function LocationSelector({ isOpen, onClose, onLocationSelect }) 
 
     if (!isOpen) return null;
 
-    const FEZ_COORDINATES = [34.0333, -5.0000]; // Fez, Morocco coordinates
+    const FEZ_COORDINATES = [34.0333, -5.0000]; // Default location to open on !
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-            <div className="bg-gray-900 rounded-xl w-full max-w-4xl p-4">
-                <h2 className="text-xl font-bold mb-4 text-white">Select Your Location</h2>
-                <div className="h-[60vh] rounded-lg overflow-hidden mb-4">
+            <div className="bg-white rounded-xl w-full max-w-4xl p-6 shadow-xl">
+                <h2 className="text-2xl font-bold mb-4 text-gray-900">Select Your Location</h2>
+                <div className="h-[60vh] rounded-lg overflow-hidden mb-6 border border-gray-200">
                     <MapContainer
                         key={mapKey}
                         center={FEZ_COORDINATES}
@@ -95,14 +94,14 @@ export default function LocationSelector({ isOpen, onClose, onLocationSelect }) 
                 <div className="flex justify-end gap-3">
                     <button
                         onClick={onClose}
-                        className="px-4 py-2 rounded-lg border border-gray-600 hover:border-gray-500"
+                        className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors duration-200"
                     >
                         Cancel
                     </button>
                     <button
                         onClick={handleConfirm}
                         disabled={!selectedLocation}
-                        className="px-4 py-2 rounded-lg bg-gradient-to-r from-violet-600 to-cyan-600 text-white disabled:opacity-50"
+                        className="px-4 py-2 rounded-lg bg-gradient-to-r from-emerald-600 to-emerald-500 text-white disabled:opacity-50 hover:from-emerald-700 hover:to-emerald-600 transition-all duration-200 shadow-md"
                     >
                         Confirm Location
                     </button>

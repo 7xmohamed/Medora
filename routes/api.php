@@ -14,14 +14,21 @@ Route::middleware('guest')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
 });
 
-// Admin routes
 Route::middleware(['auth:sanctum'])->group(function () {
-    Route::get('/admin/dashboard', [AdminController::class, 'dashboardStats'])
-        ->middleware('role:admin');
     
-    // Protected routes
+    // Protected routes ------------------
+
+
     Route::get('/user', [AuthController::class, 'user']);
     Route::post('/logout', [AuthController::class, 'logout']);
+    
+    // Admin routes
+    
+    Route::prefix('admin')->middleware(['role:admin'])->group(function() {
+        Route::get('/dashboard', [AdminController::class, 'dashboardStats']);
+    });
+
+    
 
     // Doctor routes
     Route::prefix('doctor')->middleware('role:doctor')->group(function () {

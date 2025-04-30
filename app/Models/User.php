@@ -55,6 +55,10 @@ class User extends Authenticatable
         'password' => 'hashed',
     ];
 
+    public function doctor(){
+        return $this->hasOne(Doctor::class);
+    }
+
     public function isAdmin(): bool
     {
         return $this->role === self::ROLE_ADMIN;

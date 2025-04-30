@@ -2,9 +2,10 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Models\Doctor;
 use Illuminate\Http\Request;
+use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rules\Password;
@@ -32,6 +33,14 @@ class AuthController extends Controller
         }
 
         $user = User::create($userData);
+
+        if ($user->role === 'doctor') {
+            Doctor::create([
+                'user_id' => $user->id,
+                'location' => $user->address,
+            ]);
+        }
+
 
         return response()->json([
             'user' => $user,
