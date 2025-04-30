@@ -34,4 +34,7 @@ export function DarkModeProvider({ children }) {
     );
 }
 
+// Disabling 'react-refresh/only-export-components' because this hook is intentionally exported for external usage.
+
+// eslint-disable-next-line react-refresh/only-export-components
 export const useDarkMode = () => useContext(DarkModeContext);

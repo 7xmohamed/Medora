@@ -1,9 +1,10 @@
 <?php
 
-use App\Http\Controllers\Api\AuthController;
-use App\Http\Controllers\ContactController;
-use App\Http\Controllers\AdminController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\AdminController;
+use App\Http\Controllers\DoctorController;
+use App\Http\Controllers\ContactController;
+use App\Http\Controllers\Api\AuthController;
 
 // Public routes
 Route::post('/contact', [ContactController::class, 'store']);
@@ -32,14 +33,12 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // Doctor routes
     Route::prefix('doctor')->middleware('role:doctor')->group(function () {
-        Route::get('/dashboard', 'DoctorController@dashboard');
-        Route::get('/orders', 'DoctorController@orders');
+        Route::get('/dashboard', [DoctorController::class, 'dashboard']);
     });
 
     // Patient routes
     Route::prefix('patient')->middleware('role:patient')->group(function () {
-        Route::get('/results', 'PatientController@results');
-        Route::get('/tests', 'PatientController@tests');
+        //
     });
 });
 
