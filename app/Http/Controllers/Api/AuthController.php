@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Models\User;
 use App\Models\Doctor;
+use App\Models\Patient;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Hash;
@@ -40,8 +41,15 @@ class AuthController extends Controller
                 'niom' => $request->niom,
                 'location' => $user->address,
             ]);
+        } elseif ($user->role === 'patient') {
+            Patient::create([
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'name' => $user->name,
+                'phone' => $user->phone,
+                'address' => $user->address,
+            ]);
         }
-
 
         return response()->json([
             'user' => $user,
