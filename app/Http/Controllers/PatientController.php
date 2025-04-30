@@ -3,46 +3,62 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Storage;
 
 class PatientController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+    public function getProfile(Request $request)
     {
-        //
+        $user = $request->user();
+        return response()->json([
+            'name' => $user->name,
+            'email' => $user->email,
+            'address' => $user->address,
+            'phone' => $user->phone,
+            'profile_picture' => $user->profile_picture ? asset('storage/' . $user->profile_picture) : null,
+        ]);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
+    public function updateProfile(Request $request)
     {
-        //
-    }
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email,'.$request->user()->id,
+            'address' => 'required|string|max:255',
+            'phone' => 'required|string|max:255',
+            'profile_picture' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+        ]);
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
-    {
-        //
-    }
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        //
-    }
+        $user = $request->user();
+        $data = $request->only(['name', 'email', 'address', 'phone']);
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
+        if ($request->hasFile('profile_picture')) {
+            // Delete old profile picture if exists
+            if ($user->profile_picture) {
+                Storage::disk('public')->delete($user->profile_picture);
+            }
+            
+            // Store new profile picture
+            $path = $request->file('profile_picture')->store('profile-pictures', 'public');
+            $data['profile_picture'] = $path;
+        }
+
+        $user->update($data);
+
+        return response()->json([
+            'message' => 'Profile updated successfully',
+            'user' => [
+                'name' => $user->name,
+                'email' => $user->email,
+                'address' => $user->address,
+                'phone' => $user->phone,
+                'profile_picture' => $user->profile_picture ? asset('storage/' . $user->profile_picture) : null,
+            ]
+        ]);
     }
 }

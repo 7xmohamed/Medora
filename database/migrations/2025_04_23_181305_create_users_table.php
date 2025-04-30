@@ -22,7 +22,7 @@ return new class extends Migration
             $table->enum('role', ['doctor', 'patient', 'admin']);
             $table->string('id_card_front')->nullable();
             $table->string('id_card_back')->nullable();
-            $table->string('niom')->nullable(); // numéro d'inscription à l'Ordre des Médecins
+            $table->string('profile_picture')->nullable();
             $table->timestamp('email_verified_at')->nullable();
             $table->rememberToken();
             $table->softDeletes();

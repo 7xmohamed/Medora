@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\DoctorController;
 use App\Http\Controllers\ContactController;
+use App\Http\Controllers\PatientController;
 use App\Http\Controllers\Api\AuthController;
 
 // Public routes
@@ -38,7 +39,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // Patient routes
     Route::prefix('patient')->middleware('role:patient')->group(function () {
-        //
+        Route::get('/profile', [PatientController::class, 'getProfile']);
+        Route::post('/profile/update', [PatientController::class, 'updateProfile']);
     });
 });
 

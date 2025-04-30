@@ -14,12 +14,14 @@ import ContactUs from './pages/medora/ContactUs';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import { DarkModeProvider } from './contexts/DarkModeContext';
 import ForgotPassword from './pages/ForgetPassword';
+import ScrollToTop from './components/ScrollToTop';
 
 function App() {
   return (
     <AuthProvider>
       <DarkModeProvider>
         <BrowserRouter>
+          <ScrollToTop />
           <Routes>
             {/* Admin Dashboard Route - Outside Layout */}
             <Route

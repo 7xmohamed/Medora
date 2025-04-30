@@ -2,20 +2,19 @@ import { createContext, useContext, useState, useEffect } from 'react';
 
 const DarkModeContext = createContext();
 
+// Initialize dark mode value from localStorage or system preference
+const getInitialDarkMode = () => {
+    const savedMode = localStorage.getItem('darkMode');
+    if (savedMode !== null) {
+        return savedMode === 'true';
+    }
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+};
+
 export function DarkModeProvider({ children }) {
-    const [darkMode, setDarkMode] = useState(false);
+    const [darkMode, setDarkMode] = useState(getInitialDarkMode);
 
-    // Initialize dark mode from localStorage or user preference
-    useEffect(() => {
-        const savedMode = localStorage.getItem('darkMode');
-        if (savedMode !== null) {
-            setDarkMode(savedMode === 'true');
-        } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-            setDarkMode(true);
-        }
-    }, []);
 
-    // Apply dark mode class to document
     useEffect(() => {
         if (darkMode) {
             document.documentElement.classList.add('dark');
@@ -34,7 +33,7 @@ export function DarkModeProvider({ children }) {
     );
 }
 
-// Disabling 'react-refresh/only-export-components' because this hook is intentionally exported for external usage.
+
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const useDarkMode = () => useContext(DarkModeContext);

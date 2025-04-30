@@ -32,7 +32,6 @@ class User extends Authenticatable
         'profile_picture',
         'id_card_front',
         'id_card_back',
-        'niom',
     ];
 
     /**

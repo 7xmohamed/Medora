@@ -37,6 +37,7 @@ class AuthController extends Controller
         if ($user->role === 'doctor') {
             Doctor::create([
                 'user_id' => $user->id,
+                'niom' => $request->niom,
                 'location' => $user->address,
             ]);
         }
@@ -96,20 +97,17 @@ class AuthController extends Controller
     {
         if ($role === 'doctor') {
             return [
-                'niom' => ['required', 'string', 'unique:users'],
+                'niom' => ['required', 'string', 'unique:doctors'],
                 'id_card_front' => ['required', 'image'],
                 'id_card_back' => ['required', 'image'],
             ];
         }
-        
-
         return [];
     }
 
     private function handleDoctorFiles(Request $request): array
     {
         return [
-            'niom' => $request->niom,
             'id_card_front' => $request->file('id_card_front')->store('doctors/id-cards', 'public'),
             'id_card_back' => $request->file('id_card_back')->store('doctors/id-cards', 'public'),
         ];

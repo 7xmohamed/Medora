@@ -6,7 +6,7 @@ import Footer from '../components/Layout/Footer';
 
 export default function NotFound() {
     return (
-        <div className="min-h-screen flex flex-col bg-gradient-to-br from-gray-50 to-white text-gray-900">
+        <div className="min-h-screen flex flex-col bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-800 text-gray-900 dark:text-gray-100">
             <Navbar />
             <main className="flex-grow flex items-center justify-center pt-16 pb-24 px-4">
                 <div className="text-center max-w-2xl mx-auto">
@@ -24,8 +24,8 @@ export default function NotFound() {
                         animate={{ y: 0, opacity: 1 }}
                         transition={{ delay: 0.2, duration: 0.5 }}
                     >
-                        <p className="text-4xl text-gray-700 mb-10">Oops! Page not found</p>
-                        <p className="text-gray-600 mb-12 text-xl max-w-xl mx-auto leading-relaxed">
+                        <p className="text-4xl text-gray-700 dark:text-gray-300 mb-10">Oops! Page not found</p>
+                        <p className="text-gray-600 dark:text-gray-400 mb-12 text-xl max-w-xl mx-auto leading-relaxed">
                             The page you are looking for might have been removed, had its name changed,
                             or is temporarily unavailable.
                         </p>
@@ -36,7 +36,7 @@ export default function NotFound() {
                             >
                                 <Link
                                     to="/"
-                                    className="px-8 py-3.5 text-lg bg-emerald-600 rounded-lg text-white font-medium hover:bg-emerald-700 shadow-md hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-2"
+                                    className="px-8 py-3.5 text-lg bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-700 dark:hover:bg-emerald-600 rounded-lg text-white font-medium shadow-md hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-2"
                                 >
                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                                         <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
@@ -50,7 +50,7 @@ export default function NotFound() {
                             >
                                 <Link
                                     to="/contact"
-                                    className="px-8 py-3.5 text-lg border border-emerald-500 rounded-lg text-emerald-600 font-medium hover:bg-emerald-50 transition-all duration-300 flex items-center justify-center gap-2"
+                                    className="px-8 py-3.5 text-lg border border-emerald-500 dark:border-emerald-400 rounded-lg text-emerald-600 dark:text-emerald-400 font-medium hover:bg-emerald-50 dark:hover:bg-gray-700 transition-all duration-300 flex items-center justify-center gap-2"
                                 >
                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                                         <path fillRule="evenodd" d="M2 5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H9l-3 3v-3H4a2 2 0 01-2-2V5zm2-1a1 1 0 00-1 1v4a1 1 0 001 1h1v1.586l1.293-1.293a1 1 0 011.414 0L11 11.586V10h1a1 1 0 001-1V5a1 1 0 00-1-1H4z" clipRule="evenodd" />

@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->string('speciality')->nullable();
+            $table->string('niom')->nullable(); // numéro d'inscription à l'Ordre des Médecins            
             $table->string('location');
             $table->text('description')->nullable();
             $table->string('image')->nullable();
