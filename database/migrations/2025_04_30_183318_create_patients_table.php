@@ -14,10 +14,6 @@ return new class extends Migration
         Schema::create('patients', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->string('email');
-            $table->string('name');
-            $table->string('phone');
-            $table->string('address');
             $table->string('blood_type')->nullable();
             $table->float('height')->nullable();
             $table->float('weight')->nullable();
@@ -29,9 +25,6 @@ return new class extends Migration
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('patients');

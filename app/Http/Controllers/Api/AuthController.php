@@ -44,10 +44,6 @@ class AuthController extends Controller
         } elseif ($user->role === 'patient') {
             Patient::create([
                 'user_id' => $user->id,
-                'email' => $user->email,
-                'name' => $user->name,
-                'phone' => $user->phone,
-                'address' => $user->address,
             ]);
         }
 

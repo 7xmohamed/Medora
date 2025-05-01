@@ -2,11 +2,12 @@
 
 namespace App\Models;
 
+use App\Models\ContactMessage;
+use Laravel\Sanctum\HasApiTokens;
+use Illuminate\Notifications\Notifiable;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
-use Illuminate\Notifications\Notifiable;
-use Laravel\Sanctum\HasApiTokens;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 class User extends Authenticatable
 {
@@ -54,6 +55,8 @@ class User extends Authenticatable
         'password' => 'hashed',
     ];
 
+    // Relations between other models----------
+
     public function doctor(){
         return $this->hasOne(Doctor::class);
     }
@@ -61,6 +64,13 @@ class User extends Authenticatable
     public function patient(){
         return $this->hasOne(Patient::class);
     }
+
+    public function contactMessage()
+    {
+        return $this->hasMany(ContactMessage::class);
+    }
+
+    // -------------------------------------
 
     public function isAdmin(): bool
     {

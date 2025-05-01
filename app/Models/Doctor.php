@@ -2,6 +2,9 @@
 
 namespace App\Models;
 
+use App\Models\User;
+use App\Models\Reservation;
+use App\Models\Availability;
 use Illuminate\Database\Eloquent\Model;
 
 class Doctor extends Model
@@ -13,6 +16,7 @@ class Doctor extends Model
         'location',
         'description',
         'image',
+        'price',
         'languages',
         'experience',
         'education',
@@ -25,5 +29,13 @@ class Doctor extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function reservations(){
+        return $this->hasMany(Reservation::class);
+    }
+
+    public function availabilities(){
+        return $this->hasMany(Availability::class);
     }
 }

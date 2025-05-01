@@ -22,6 +22,7 @@ return new class extends Migration
             $table->json('languages')->nullable();
             $table->string('experience')->nullable();
             $table->string('education')->nullable();
+            $table->decimal('price', 10, 2)->nullable();
             $table->timestamps();
         });
     }
