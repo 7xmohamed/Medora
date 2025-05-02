@@ -1,13 +1,14 @@
+/* eslint-disable no-unused-vars */
 import React, { useEffect, useState } from 'react';
 import {
     UsersIcon, UserGroupIcon, ClipboardDocumentIcon,
     ChartBarIcon, CogIcon, BellIcon, ArrowTrendingUpIcon
 } from '@heroicons/react/24/outline';
-// eslint-disable-next-line no-unused-vars
 import { motion } from 'framer-motion';
 import api from '../../services/api';
 import Navbar from '../../components/Layout/Navbar';
 import DarkModeToggle from '../../components/DarkModeToggle';
+import ContactMessagesSection from './sections/ContactMessagesSection';
 import { useDarkMode } from '../../contexts/DarkModeContext';
 
 export default function AdminDashboard() {
@@ -17,11 +18,15 @@ export default function AdminDashboard() {
         totalDoctors: 0,
         totalPatients: 0
     });
+    const [messages, setMessages] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [messagesLoading, setMessagesLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [messagesError, setMessagesError] = useState(null);
 
     useEffect(() => {
         fetchDashboardData();
+        fetchContactMessages();
     }, []);
 
     const fetchDashboardData = async () => {
@@ -38,6 +43,24 @@ export default function AdminDashboard() {
             setError(err.response?.data?.error || 'Failed to load dashboard data');
             setLoading(false);
         }
+    };
+
+    const fetchContactMessages = async () => {
+        try {
+            const response = await api.get('/admin/contact-messages');
+            if (response.data.messages) {
+                setMessages(response.data.messages);
+            }
+            setMessagesLoading(false);
+        } catch (err) {
+            console.error('Failed to fetch contact messages:', err);
+            setMessagesError(err.response?.data?.error || 'Failed to load contact messages');
+            setMessagesLoading(false);
+        }
+    };
+
+    const handleMessageDeleted = (deletedId) => {
+        setMessages(messages.filter(message => message.id !== deletedId));
     };
 
     const userStats = [
@@ -223,6 +246,16 @@ export default function AdminDashboard() {
                                                     ))}
                                                 </div>
                                             </div>
+                                        </div>
+
+                                        {/* Contact Messages Section */}
+                                        <div className="mb-8">
+                                            <ContactMessagesSection
+                                                messages={messages}
+                                                loading={messagesLoading}
+                                                error={messagesError}
+                                                onMessageDeleted={handleMessageDeleted}
+                                            />
                                         </div>
                                     </>
                                 )}

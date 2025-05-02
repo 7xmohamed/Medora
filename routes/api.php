@@ -28,6 +28,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
     
     Route::prefix('admin')->middleware(['role:admin'])->group(function() {
         Route::get('/dashboard', [AdminController::class, 'dashboardStats']);
+        Route::get('/contact-messages', [AdminController::class, 'getContactMessages']);
+        Route::delete('/contact-messages/{id}', [AdminController::class, 'deleteContactMessage']);
     });
 
     
