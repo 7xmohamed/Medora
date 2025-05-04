@@ -56,6 +56,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/dashboard', [DoctorController::class, 'dashboard']);
         Route::get('/profile', [DoctorController::class, 'getProfile']);
         Route::post('/profile/picture', [DoctorController::class, 'updateProfilePicture']);
+        // Add new availability routes
+        Route::get('/availabilities', [DoctorController::class, 'getAvailabilities']);
+        Route::post('/availabilities', [DoctorController::class, 'storeAvailability']);
+        Route::delete('/availabilities/{id}', [DoctorController::class, 'deleteAvailability']);
     });
     // ------------------------------
 

@@ -38,3 +38,74 @@
         --radius: 0.5rem;
     }
 }
+
+/* FullCalendar customization */
+.fc {
+    --fc-border-color: theme('colors.gray.200');
+    --fc-button-bg-color: theme('colors.emerald.600');
+    --fc-button-border-color: theme('colors.emerald.600');
+    --fc-button-hover-bg-color: theme('colors.emerald.700');
+    --fc-button-hover-border-color: theme('colors.emerald.700');
+    --fc-button-active-bg-color: theme('colors.emerald.800');
+    --fc-button-active-border-color: theme('colors.emerald.800');
+    --fc-today-bg-color: rgba(16, 185, 129, 0.05);
+    --fc-page-bg-color: transparent;
+}
+
+.dark .fc {
+    --fc-border-color: theme('colors.gray.700');
+    --fc-button-text-color: theme('colors.white');
+    --fc-button-bg-color: theme('colors.emerald.600');
+    --fc-button-border-color: theme('colors.emerald.600');
+    --fc-button-hover-bg-color: theme('colors.emerald.700');
+    --fc-button-hover-border-color: theme('colors.emerald.700');
+    --fc-button-active-bg-color: theme('colors.emerald.800');
+    --fc-button-active-border-color: theme('colors.emerald.800');
+    --fc-page-bg-color: theme('colors.gray.800');
+    --fc-neutral-bg-color: theme('colors.gray.700');
+    --fc-neutral-text-color: theme('colors.gray.300');
+    --fc-today-bg-color: rgba(16, 185, 129, 0.1);
+}
+
+.fc-theme-standard td,
+.fc-theme-standard th {
+    @apply border border-gray-200 dark:border-gray-700;
+}
+
+.fc-timegrid-slot {
+    @apply h-12;
+}
+
+.fc-event {
+    @apply cursor-pointer transition-opacity hover:opacity-80;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.fc-event:hover {
+    opacity: 0.9;
+}
+
+/* Calendar selection styles */
+.fc .fc-highlight {
+    background-color: rgba(16, 185, 129, 0.15) !important;
+    border: 2px dashed #059669 !important;
+}
+
+.fc .fc-timegrid-slot {
+    cursor: pointer;
+    height: 3rem;
+}
+
+.fc .fc-timegrid-slot:hover {
+    background: rgba(5, 150, 105, 0.05);
+}
+
+.fc .fc-timegrid-slot-label {
+    vertical-align: middle;
+}
+
+.dark .fc .fc-highlight {
+    background-color: rgba(16, 185, 129, 0.25) !important;
+    border: 2px dashed #34d399 !important;
+}

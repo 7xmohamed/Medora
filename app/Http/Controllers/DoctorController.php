@@ -125,32 +125,56 @@ class DoctorController extends Controller
     public function dashboard(Request $request)
     {
         try {
-            $doctor = Doctor::with(['user', 'reservations'])
+            $doctor = Doctor::with(['user', 'reservations.patient.user'])
                 ->where('user_id', auth()->id())
                 ->firstOrFail();
 
             $stats = [
-                'total_reservations' => $doctor->reservations->count(),
-                'pending_reservations' => $doctor->reservations->where('reservation_status', 'pending')->count(),
-                'completed_reservations' => $doctor->reservations->where('reservation_status', 'completed')->count(),
+                'today_appointments' => $doctor->reservations()
+                    ->whereDate('created_at', today())
+                    ->count(),
+                'total_patients' => $doctor->reservations()
+                    ->distinct('patient_id')
+                    ->count('patient_id'),
+                'total_prescriptions' => $doctor->reservations()
+                    ->whereHas('prescription')
+                    ->count(),
+                'satisfaction_rate' => '95%', // You can implement a real rating system later
+                'total_revenue' => $doctor->reservations()
+                    ->where('payment_status', 'paid')
+                    ->sum('price'),
+                'pending_appointments' => $doctor->reservations()
+                    ->where('reservation_status', 'pending')
+                    ->count(),
             ];
 
+            $todayAppointments = $doctor->reservations()
+                ->with('patient.user')
+                ->whereDate('created_at', today())
+                ->orderBy('created_at', 'asc')
+                ->get()
+                ->map(function($reservation) {
+                    return [
+                        'id' => $reservation->id,
+                        'patient_name' => $reservation->patient->user->name,
+                        'time' => $reservation->created_at->format('h:i A'),
+                        'status' => $reservation->reservation_status,
+                        'reason' => 'Medical Consultation', // You can add this field to reservations if needed
+                        'patient_id' => $reservation->patient_id,
+                        'price' => $reservation->price
+                    ];
+                });
+
             return response()->json([
+                'success' => true,
                 'stats' => $stats,
-                'recent_reservations' => $doctor->reservations()
-                    ->with(['patient.user'])
-                    ->orderBy('created_at', 'desc')
-                    ->limit(5)
-                    ->get()
-                    ->map(function($reservation) {
-                        return [
-                            'id' => $reservation->id,
-                            'patient_name' => $reservation->patient->user->name,
-                            'status' => $reservation->reservation_status,
-                            'date' => $reservation->created_at->format('M d, Y'),
-                            'price' => $reservation->price,
-                        ];
-                    })
+                'today_appointments' => $todayAppointments,
+                'doctor' => [
+                    'name' => $doctor->user->name,
+                    'profile_picture' => $doctor->user->profile_picture ? 
+                        asset('storage/' . $doctor->user->profile_picture) : 
+                        null
+                ]
             ]);
         } catch (\Exception $e) {
             Log::error('Doctor dashboard error:', [
@@ -241,6 +265,83 @@ class DoctorController extends Controller
                 'trace' => $e->getTraceAsString()
             ]);
             return response()->json(['error' => 'Failed to update profile picture'], 500);
+        }
+    }
+
+    public function getAvailabilities()
+    {
+        try {
+            $doctor = Doctor::with('availabilities')
+                ->where('user_id', auth()->id())
+                ->firstOrFail();
+
+            return response()->json([
+                'success' => true,
+                'availabilities' => $doctor->availabilities
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error fetching availabilities:', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json(['error' => 'Failed to fetch availabilities'], 500);
+        }
+    }
+
+    public function storeAvailability(Request $request)
+    {
+        try {
+            $request->validate([
+                'day_of_week' => 'required|in:Monday,Tuesday,Wednesday,Thursday,Friday,Saturday,Sunday',
+                'start_time' => 'required|date_format:H:i',
+                'end_time' => 'required|date_format:H:i|after:start_time',
+            ]);
+
+            $doctor = Doctor::where('user_id', auth()->id())->firstOrFail();
+            
+            $availability = $doctor->availabilities()->create($request->all());
+
+            return response()->json([
+                'success' => true,
+                'availability' => $availability
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error creating availability:', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json(['error' => 'Failed to create availability'], 500);
+        }
+    }
+
+    public function deleteAvailability(Request $request, $id)
+    {
+        try {
+            $doctor = Doctor::where('user_id', auth()->id())->firstOrFail();
+            $availability = $doctor->availabilities()->findOrFail($id);
+            
+            if ($request->query('delete_all') === 'true') {
+                // Delete all availabilities for the same day and time
+                $doctor->availabilities()
+                      ->where('day_of_week', $availability->day_of_week)
+                      ->where('start_time', $availability->start_time)
+                      ->where('end_time', $availability->end_time)
+                      ->delete();
+            } else {
+                // Delete only this specific availability
+                $availability->delete();
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Availability deleted successfully'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error deleting availability:', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json(['error' => 'Failed to delete availability'], 500);
         }
     }
 

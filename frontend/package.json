@@ -21,9 +21,11 @@
     "axios": "^1.8.4",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.0",
+    "date-fns": "^4.1.0",
     "framer-motion": "^12.8.0",
     "leaflet": "^1.9.4",
     "react": "^19.0.0",
+    "react-big-calendar": "^1.18.0",
     "react-dom": "^19.0.0",
     "react-hot-toast": "^2.5.2",
     "react-icons": "^5.5.0",
@@ -34,7 +36,11 @@
     "sonner": "^1.4.0",
     "tailwind-merge": "^2.2.1",
     "tailwindcss-animate": "^1.0.7",
-    "three": "^0.176.0"
+    "three": "^0.176.0",
+    "@fullcalendar/react": "^6.1.10",
+    "@fullcalendar/daygrid": "^6.1.10",
+    "@fullcalendar/timegrid": "^6.1.10",
+    "@fullcalendar/interaction": "^6.1.10"
   },
   "devDependencies": {
     "@eslint/js": "^9.22.0",
