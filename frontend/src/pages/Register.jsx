@@ -72,12 +72,14 @@ export default function RegisterPage() {
     const [error, setError] = useState("");
     const [step, setStep] = useState(1);
 
-    if (user) {
-        if (user.role === 'patient') {
-            return <Navigate to='/patient/profile' />
-        } else {
-            return <Navigate to="/dashboard" />;
-        }
+    if (user?.role) {
+        const path = {
+            patient: '/patient/profile',
+            admin: '/dashboard',
+            doctor: '/doctor/profile',
+        }[user.role] ?? '/error';
+
+        return <Navigate to={path} />;
     }
 
     const handleSubmit = async (e) => {

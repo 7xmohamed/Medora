@@ -24,22 +24,6 @@ import { motion } from 'framer-motion';
 // Mock data - These can be replaced with real API calls later
 const mockReservations = [
     {
-        id: 1,
-        doctor_name: 'Dr. Sarah Johnson',
-        specialization: 'Cardiologist',
-        date_time: '2023-06-15T10:30:00',
-        status: 'confirmed',
-        location: 'Main Hospital, Room 302'
-    },
-    {
-        id: 2,
-        doctor_name: 'Dr. Michael Chen',
-        specialization: 'Dermatologist',
-        date_time: '2023-06-18T14:00:00',
-        status: 'pending',
-        location: 'West Clinic, Room 105'
-    },
-    {
         id: 3,
         doctor_name: 'Dr. Emily Wilson',
         specialization: 'Pediatrician',
@@ -476,32 +460,8 @@ export default function PatientProfileView() {
                                 </div>
                             </motion.div>
                         )}
-
-                        {/* Quick Actions Card */}
-                        <motion.div variants={itemVariants} className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden border border-gray-100 dark:border-gray-700">
-                            <div className="bg-gradient-to-r from-emerald-600 to-emerald-500 px-6 py-4">
-                                <h2 className="text-xl font-semibold text-white">Quick Actions</h2>
-                            </div>
-                            <div className="p-4 grid grid-cols-2 gap-4">
-                                <button className="p-3 bg-emerald-50 hover:bg-emerald-100 rounded-lg text-emerald-700 dark:bg-emerald-900/30 dark:hover:bg-emerald-800/50 dark:text-emerald-300 transition-colors">
-                                    <FiCalendar className="w-6 h-6 mx-auto mb-1" />
-                                    <span className="text-sm">New Appointment</span>
-                                </button>
-                                <button className="p-3 bg-blue-50 hover:bg-blue-100 rounded-lg text-blue-700 dark:bg-blue-900/30 dark:hover:bg-blue-800/50 dark:text-blue-300 transition-colors">
-                                    <FiActivity className="w-6 h-6 mx-auto mb-1" />
-                                    <span className="text-sm">Health Stats</span>
-                                </button>
-                                <button className="p-3 bg-purple-50 hover:bg-purple-100 rounded-lg text-purple-700 dark:bg-purple-900/30 dark:hover:bg-purple-800/50 dark:text-purple-300 transition-colors">
-                                    <FiHeart className="w-6 h-6 mx-auto mb-1" />
-                                    <span className="text-sm">Medical Records</span>
-                                </button>
-                                <button className="p-3 bg-orange-50 hover:bg-orange-100 rounded-lg text-orange-700 dark:bg-orange-900/30 dark:hover:bg-orange-800/50 dark:text-orange-300 transition-colors">
-                                    <FiTrendingUp className="w-6 h-6 mx-auto mb-1" />
-                                    <span className="text-sm">Wellness Plan</span>
-                                </button>
-                            </div>
-                        </motion.div>
                     </div>
+
 
                     {/* Right Column - Reservations and Analytics */}
                     <div className="lg:col-span-2 space-y-6">
@@ -597,15 +557,6 @@ export default function PatientProfileView() {
                     </div>
                 </div>
 
-                {/* Development Note - Can be removed in production */}
-                {useMockData && (
-                    <motion.div
-                        variants={itemVariants}
-                        className="mt-8 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg text-yellow-800 dark:text-yellow-200 text-sm border border-yellow-100 dark:border-yellow-900/30"
-                    >
-                        <p>Note: Currently using mock data for reservations and analytics. To switch to real API data, set <code className="bg-yellow-100 dark:bg-yellow-900/30 px-1 rounded">useMockData</code> to false in the component.</p>
-                    </motion.div>
-                )}
             </motion.div>
         </div>
     );

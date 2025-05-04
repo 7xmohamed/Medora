@@ -16,11 +16,7 @@ export default function LoginPage() {
     const [focusedField, setFocusedField] = useState(null);
 
     if (user) {
-        if (user.role === 'patient') {
-            return <Navigate to='/' />
-        } else {
-            return <Navigate to="/" />;
-        }
+        return <Navigate to="/" />;
     }
 
     const handleSubmit = async (e) => {

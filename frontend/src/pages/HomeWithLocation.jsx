@@ -6,6 +6,7 @@ import Footer from '../components/Layout/Footer';
 import { FaCalendarAlt, FaMapMarkerAlt, FaChevronRight, FaMapMarked, FaInfoCircle, FaUserMd, FaHome, FaCheckCircle } from 'react-icons/fa';
 import api from '../services/api';
 import React from 'react';
+import { motion } from 'framer-motion';
 
 class ErrorBoundary extends React.Component {
     constructor(props) {
@@ -73,7 +74,7 @@ const DoctorCard = memo(({ doctor }) => {
                             <p className="text-emerald-600 dark:text-emerald-400 font-medium">{speciality}</p>
                         </div>
                         <div className="mt-2 md:mt-0">
-                            <span className="text-gray-700 dark:text-gray-300 font-medium">${price}</span>
+                            <span className="text-gray-700 dark:text-gray-300 font-medium">{price} Dh</span>
                             <span className="text-gray-500 dark:text-gray-400 text-sm">/consultation</span>
                         </div>
                     </div>
@@ -108,13 +109,17 @@ const DoctorCard = memo(({ doctor }) => {
     );
 });
 
-const priceRanges = [
+const PRICE_RANGES = [
     { id: 'all', label: 'All Prices', min: 0, max: Infinity },
     { id: 'under50', label: 'Under $50', min: 0, max: 50 },
     { id: '50to100', label: '$50 - $100', min: 50, max: 100 },
     { id: '100to200', label: '$100 - $200', min: 100, max: 200 },
     { id: 'over200', label: 'Over $200', min: 200, max: Infinity }
-];
+].map(range => ({
+    ...range,
+    value: range.id,
+    badge: range.id === 'all' ? '' : range.id === 'over200' ? '$200+' : `$${range.min}-$${range.max}`
+}));
 
 function HomeWithLocation() {
     const navigate = useNavigate();
@@ -135,6 +140,9 @@ function HomeWithLocation() {
     const [coordinates, setCoordinates] = useState(null);
     const [locationBoundary, setLocationBoundary] = useState(null);
     const [locationData, setLocationData] = useState(null);
+    const [isFiltering, setIsFiltering] = useState(false);
+    const [activeFilters, setActiveFilters] = useState(0);
+    const [searchTimeout, setSearchTimeout] = useState(null);
 
     const fetchDoctors = useCallback(async () => {
         try {
@@ -146,7 +154,6 @@ function HomeWithLocation() {
             );
 
             if (response.data.doctors) {
-                // Filter to only show verified doctors (is_verified === 1)
                 const verifiedDoctors = response.data.doctors.filter(doctor => doctor.user?.is_verified === 1);
 
                 setData({
@@ -186,10 +193,65 @@ function HomeWithLocation() {
         fetchDoctors();
     }, [fetchDoctors]);
 
-    // Only include specialties from verified doctors
-    const allSpecialties = [...new Set(data.doctors.map(doctor => doctor.speciality))];
+    const applyFilters = useCallback(() => {
+        setIsFiltering(true);
+        if (searchTimeout) clearTimeout(searchTimeout);
 
-    const handleFilterChange = (e) => {
+        const timeoutId = setTimeout(() => {
+            let filtered = [...data.doctors];
+
+            if (filters.specialties.length > 0) {
+                filtered = filtered.filter(doctor =>
+                    filters.specialties.includes(doctor.speciality)
+                );
+            }
+
+            const selectedRange = PRICE_RANGES.find(range => range.id === selectedPriceRange);
+            if (selectedRange && selectedRange.id !== 'all') {
+                filtered = filtered.filter(doctor =>
+                    doctor.price >= selectedRange.min &&
+                    doctor.price <= selectedRange.max
+                );
+            }
+
+            filtered.sort((a, b) => {
+                if (sortOption === 'price') {
+                    return sortOrder === 'asc'
+                        ? a.price - b.price
+                        : b.price - a.price;
+                } else if (sortOption === 'rating') {
+                    return sortOrder === 'asc'
+                        ? (a.rating || 0) - (b.rating || 0)
+                        : (b.rating || 0) - (a.rating || 0);
+                }
+                return 0;
+            });
+
+            setIsFiltering(false);
+
+            setActiveFilters(
+                (filters.specialties.length > 0 ? 1 : 0) +
+                (selectedPriceRange !== 'all' ? 1 : 0)
+            );
+        }, 300);
+
+        setSearchTimeout(timeoutId);
+    }, [data.doctors, filters.specialties, searchTimeout, selectedPriceRange, sortOption, sortOrder]);
+
+    const allSpecialties = useMemo(() => {
+        return [...new Set(data.doctors.map(doctor => doctor.speciality))];
+    }, [data.doctors]);
+
+    const resetFilters = useCallback(() => {
+        setFilters({
+            specialties: []
+        });
+        setSelectedPriceRange('all');
+        setSortOption('price');
+        setSortOrder('asc');
+    }, []);
+
+    const handleFilterChange = useCallback((e) => {
         const { name, value, checked } = e.target;
         if (name === 'specialties') {
             setFilters(prev => ({
@@ -199,39 +261,7 @@ function HomeWithLocation() {
                     : prev.specialties.filter(spec => spec !== value)
             }));
         }
-    };
-
-    const resetFilters = () => {
-        setFilters({
-            specialties: []
-        });
-        setSelectedPriceRange('all');
-    };
-
-    const PriceRangeSelector = () => (
-        <div className="space-y-4">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Price Range
-            </label>
-            <div className="space-y-2">
-                {priceRanges.map(range => (
-                    <label key={range.id} className="flex items-center space-x-3">
-                        <input
-                            type="radio"
-                            name="priceRange"
-                            value={range.id}
-                            checked={selectedPriceRange === range.id}
-                            onChange={(e) => setSelectedPriceRange(e.target.value)}
-                            className="h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300 dark:border-gray-600"
-                        />
-                        <span className="text-sm text-gray-600 dark:text-gray-400">
-                            {range.label}
-                        </span>
-                    </label>
-                ))}
-            </div>
-        </div>
-    );
+    }, []);
 
     if (loading) {
         return (
@@ -243,8 +273,6 @@ function HomeWithLocation() {
             </div>
         );
     }
-
-    const doctorsToDisplay = data.doctors; // Already filtered to only verified doctors
 
     return (
         <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
@@ -265,11 +293,16 @@ function HomeWithLocation() {
                         </div>
                     )}
 
-                    {doctorsToDisplay.length > 0 ? (
+                    {data.doctors.length > 0 ? (
                         <>
                             <div className="flex justify-between items-center mb-6">
                                 <p className="text-gray-600 dark:text-gray-400">
-                                    {doctorsToDisplay.length} {doctorsToDisplay.length === 1 ? 'verified doctor' : 'verified doctors'} found
+                                    {data.doctors.length} {data.doctors.length === 1 ? 'verified doctor' : 'verified doctors'} found
+                                    {(filters.specialties.length > 0 || selectedPriceRange !== 'all') && (
+                                        <span className="text-sm text-gray-500 ml-2">
+                                            (Filtered from {data.doctors.length})
+                                        </span>
+                                    )}
                                 </p>
                                 <div className="flex items-center">
                                     <select
@@ -292,41 +325,87 @@ function HomeWithLocation() {
                             </div>
 
                             <div className="flex flex-col md:flex-row gap-6">
-                                <div className="md:w-64">
-                                    <div className="bg-white dark:bg-gray-800 p-5 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 sticky top-28">
-                                        <div className="flex justify-between items-center mb-4">
-                                            <h3 className="font-medium text-gray-800 dark:text-white">Filters</h3>
-                                            <button
-                                                onClick={resetFilters}
-                                                className="text-emerald-600 dark:text-emerald-400 text-sm hover:underline"
-                                            >
-                                                Reset
-                                            </button>
-                                        </div>
-
-                                        <div className="space-y-5">
-                                            <PriceRangeSelector />
-                                            {allSpecialties.length > 0 && (
-                                                <div>
-                                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Specialties</label>
-                                                    <div className="space-y-2">
-                                                        {allSpecialties.map(specialty => (
-                                                            <label key={specialty} className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                                                                <input
-                                                                    type="checkbox"
-                                                                    name="specialties"
-                                                                    value={specialty}
-                                                                    checked={filters.specialties.includes(specialty)}
-                                                                    onChange={handleFilterChange}
-                                                                    className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 dark:border-gray-600 dark:bg-gray-700"
-                                                                />
-                                                                {specialty}
-                                                            </label>
-                                                        ))}
-                                                    </div>
-                                                </div>
+                                <div className="md:w-72">
+                                    <div className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-lg p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700/50 sticky top-28">
+                                        {/* Filter Header */}
+                                        <div className="flex justify-between items-center mb-6">
+                                            <h3 className="text-lg font-medium text-gray-800 dark:text-white">
+                                                Filters
+                                                {activeFilters > 0 && (
+                                                    <span className="ml-2 px-2 py-0.5 text-xs bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 rounded-full">
+                                                        {activeFilters}
+                                                    </span>
+                                                )}
+                                            </h3>
+                                            {activeFilters > 0 && (
+                                                <button
+                                                    onClick={resetFilters}
+                                                    className="text-sm text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors"
+                                                >
+                                                    Clear all
+                                                </button>
                                             )}
                                         </div>
+
+                                        {/* Price Range Section */}
+                                        <div className="space-y-4 mb-8">
+                                            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                                Price Range
+                                            </h4>
+                                            <div className="grid grid-cols-1 gap-2">
+                                                {PRICE_RANGES.map((range) => (
+                                                    <button
+                                                        key={range.id}
+                                                        onClick={() => setSelectedPriceRange(range.id)}
+                                                        className={`w-full px-4 py-2.5 rounded-lg text-left transition-all duration-200 ${selectedPriceRange === range.id
+                                                                ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 ring-1 ring-emerald-500/20'
+                                                                : 'hover:bg-gray-50 dark:hover:bg-gray-700/50 text-gray-600 dark:text-gray-400'
+                                                            }`}
+                                                    >
+                                                        <div className="flex items-center justify-between">
+                                                            <span className="text-sm">{range.label}</span>
+                                                            {range.badge && (
+                                                                <span className={`text-xs px-2 py-1 rounded-full ${selectedPriceRange === range.id
+                                                                        ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300'
+                                                                        : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
+                                                                    }`}>
+                                                                    {range.badge}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        {/* Specialties Section */}
+                                        {allSpecialties.length > 0 && (
+                                            <div className="space-y-4">
+                                                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                                    Specialties
+                                                </h4>
+                                                <div className="space-y-2 max-h-[280px] overflow-y-auto custom-scrollbar">
+                                                    {allSpecialties.map(specialty => (
+                                                        <label
+                                                            key={specialty}
+                                                            className="flex items-center group p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/30 cursor-pointer transition-colors"
+                                                        >
+                                                            <input
+                                                                type="checkbox"
+                                                                name="specialties"
+                                                                value={specialty}
+                                                                checked={filters.specialties.includes(specialty)}
+                                                                onChange={handleFilterChange}
+                                                                className="w-4 h-4 rounded border-gray-300 text-emerald-500 focus:ring-emerald-500/20 transition-colors"
+                                                            />
+                                                            <span className="ml-3 text-sm text-gray-600 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-gray-200 transition-colors">
+                                                                {specialty}
+                                                            </span>
+                                                        </label>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
 
@@ -339,7 +418,7 @@ function HomeWithLocation() {
                                         }
                                     >
                                         <div className="space-y-4">
-                                            {doctorsToDisplay.map((doctor) => (
+                                            {data.doctors.map((doctor) => (
                                                 <DoctorCard key={doctor.id} doctor={doctor} />
                                             ))}
                                         </div>

@@ -11,10 +11,10 @@ import PatientRoutes from './routes/PatientRoutes';
 import HomeWithLocation from './pages/HomeWithLocation';
 import AboutUs from './pages/medora/AboutUs';
 import ContactUs from './pages/medora/ContactUs';
-import AdminDashboard from './pages/admin/AdminDashboard';
 import { DarkModeProvider } from './contexts/DarkModeContext';
 import ForgotPassword from './pages/ForgetPassword';
 import ScrollToTop from './components/ScrollToTop';
+import AdminRoutes from './routes/AdminRoutes';
 
 function App() {
   return (
@@ -23,12 +23,12 @@ function App() {
         <BrowserRouter>
           <ScrollToTop />
           <Routes>
-            {/* Admin Dashboard Route - Outside Layout */}
+            {/* Admin Dashboard Route */}
             <Route
               path="admin/*"
               element={
                 <PrivateRoute adminOnly>
-                  <AdminDashboard />
+                  <AdminRoutes />
                 </PrivateRoute>
               }
             />

@@ -35,14 +35,21 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // Admin routes ----------------------
     Route::prefix('admin')->middleware(['role:admin'])->group(function() {
         Route::get('/dashboard', [AdminController::class, 'dashboardStats']);
-        Route::get('/doctors', [AdminController::class, 'getAllDoctors']);
-        Route::put('/doctors/{id}/verify', [AdminController::class, 'verifyDoctor']);
+        Route::get('/users', [AdminController::class, 'getUsers']);
+        Route::delete('/users/{id}', [AdminController::class, 'deleteUser']);
+        Route::get('/users/{id}', [AdminController::class, 'getUserDetails']);
+        Route::put('/users/{id}', [AdminController::class, 'updateUser']);
+        Route::get('/doctors', [AdminController::class, 'getDoctors']);
+        Route::patch('/doctors/{id}/verify', [AdminController::class, 'updateDoctorStatus']);
+        Route::delete('/doctors/{id}', [AdminController::class, 'deleteDoctor']);
         Route::get('/contact-messages', [AdminController::class, 'getContactMessages']);
         Route::delete('/contact-messages/{id}', [AdminController::class, 'deleteContactMessage']);
-});
+        Route::get('/reservation-stats', [AdminController::class, 'getReservationStats']);
+        Route::get('/doctor-specialties', [AdminController::class, 'getDoctorSpecialties']);
+        Route::get('/monthly-users', [AdminController::class, 'getMonthlyUsers']);
+    });
     // -----------------------------
 
-    
 
     // Doctor routes
     Route::prefix('doctor')->middleware('role:doctor')->group(function () {
@@ -50,6 +57,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/profile', [DoctorController::class, 'getProfile']);
         Route::post('/profile/picture', [DoctorController::class, 'updateProfilePicture']);
     });
+    // ------------------------------
+
 
     // Patient routes
     Route::prefix('patient')->middleware('role:patient')->group(function () {
@@ -57,6 +66,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/profile/update', [PatientController::class, 'updateProfile']);
     });
 });
+
 
 // Enable sanctum for all routes
 Route::middleware('web')->group(function () {
