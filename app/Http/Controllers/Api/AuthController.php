@@ -14,43 +14,162 @@ use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
+    private function handleDoctorFiles(Request $request): array
+    {
+        $files = [];
+        
+        try {
+            foreach (['id_card_front', 'id_card_back'] as $field) {
+                if ($request->hasFile($field)) {
+                    $file = $request->file($field);
+                    
+                    // Generate unique filename
+                    $filename = uniqid('doc_') . '_' . time() . '.' . $file->getClientOriginalExtension();
+                    
+                    // Store file and get path
+                    $path = $file->storeAs(
+                        'doctors/id-cards', 
+                        $filename, 
+                        'public'
+                    );
+                    
+                    if (!$path) {
+                        throw new \Exception("Failed to store $field");
+                    }
+                    
+                    $files[$field] = $path;
+                }
+            }
+            
+            return $files;
+        } catch (\Exception $e) {
+            // Clean up any files that were stored
+            foreach ($files as $path) {
+                Storage::disk('public')->delete($path);
+            }
+            throw $e;
+        }
+    }
+
+    private function validateDoctorFiles(Request $request)
+    {
+        $maxSize = 2048; // 2MB
+        
+        return $request->validate([
+            'id_card_front' => [
+                'required',
+                'image',
+                'mimes:jpeg,png,jpg',
+                "max:$maxSize",
+            ],
+            'id_card_back' => [
+                'required',
+                'image',
+                'mimes:jpeg,png,jpg',
+                "max:$maxSize",
+            ],
+        ]);
+    }
+
     public function register(Request $request)
     {
-        $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'unique:users'],
-            'password' => ['required', 'confirmed', Password::defaults()],
-            'role' => ['required', 'in:doctor,patient'],
-            'phone' => ['required', 'string'],
-            'address' => ['required', 'string'],
-        ] + $this->getRoleSpecificRules($request->role));
-
-        $userData = $request->only(['name', 'email', 'role', 'phone', 'address']);
-        $userData['password'] = Hash::make($request->password);
-        
-        // Handle file uploads based on role
-        if ($request->role === 'doctor') {
-            $userData += $this->handleDoctorFiles($request);
-        }
-
-        $user = User::create($userData);
-
-        if ($user->role === 'doctor') {
-            Doctor::create([
-                'user_id' => $user->id,
-                'niom' => $request->niom,
-                'location' => $user->address,
+        try {
+            \Log::info('Registration request data:', $request->all());
+            
+            // Basic validation
+            $request->validate([
+                'name' => ['required', 'string', 'max:255'],
+                'email' => ['required', 'string', 'email', 'unique:users'],
+                'password' => ['required', 'confirmed', Password::defaults()],
+                'role' => ['required', 'in:doctor,patient'],
+                'phone' => ['required', 'string'],
+                'address' => ['required', 'string'],
             ]);
-        } elseif ($user->role === 'patient') {
-            Patient::create([
-                'user_id' => $user->id,
-            ]);
-        }
 
-        return response()->json([
-            'user' => $user,
-            'token' => $user->createToken('auth_token')->plainTextToken
-        ], 201);
+            // Doctor-specific validation
+            if ($request->role === 'doctor') {
+                $request->validate([
+                    'niom' => ['required', 'string', 'unique:doctors'],
+                    'speciality' => ['required', 'string'],
+                    'price' => ['required', 'numeric', 'min:0'],
+                    'languages' => ['required'],
+                    'experience' => ['required', 'string'],
+                    'education' => ['required', 'string'],
+                    'location' => ['required', 'string'],
+                    'latitude' => ['required', 'numeric'],
+                    'longitude' => ['required', 'numeric'],
+                    'description' => ['nullable', 'string'],
+                ]);
+
+                // Validate files before handling them
+                $this->validateDoctorFiles($request);
+            }
+
+            \DB::beginTransaction();
+
+            try {
+                // Create user
+                $userData = $request->only(['name', 'email', 'role', 'phone', 'address']);
+                $userData['password'] = Hash::make($request->password);
+                
+                // Handle file uploads for doctor
+                if ($request->role === 'doctor') {
+                    $files = $this->handleDoctorFiles($request);
+                    $userData = array_merge($userData, $files);
+                }
+
+                $user = User::create($userData);
+
+                if ($user->role === 'doctor') {
+                    // Parse languages
+                    $languages = is_string($request->languages) ? 
+                        json_decode($request->languages, true) : 
+                        $request->languages;
+
+                    Doctor::create([
+                        'user_id' => $user->id,
+                        'niom' => $request->niom,
+                        'speciality' => $request->speciality,
+                        'price' => floatval($request->price),
+                        'languages' => $languages,
+                        'experience' => $request->experience,
+                        'education' => $request->education,
+                        'location' => $request->location,
+                        'city' => $this->extractCityFromLocation($request->location),
+                        'latitude' => floatval($request->latitude),
+                        'longitude' => floatval($request->longitude),
+                        'description' => $request->description,
+                    ]);
+                } else {
+                    Patient::create(['user_id' => $user->id]);
+                }
+
+                \DB::commit();
+
+                // Load relationships
+                $user->load($user->role === 'doctor' ? 'doctor' : 'patient');
+                
+                return response()->json([
+                    'user' => $user,
+                    'token' => $user->createToken('auth_token')->plainTextToken
+                ], 201);
+
+            } catch (\Exception $e) {
+                \DB::rollback();
+                throw $e;
+            }
+        } catch (\Exception $e) {
+            \Log::error('Registration error:', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'request' => $request->except(['password', 'password_confirmation'])
+            ]);
+            return response()->json([
+                'message' => 'Registration failed',
+                'errors' => $e instanceof ValidationException ? 
+                    $e->errors() : ['general' => [$e->getMessage()]]
+            ], 422);
+        }
     }
 
     public function login(Request $request)
@@ -97,23 +216,22 @@ class AuthController extends Controller
         return response()->json(['authenticated' => false], 401);
     }
 
-    private function getRoleSpecificRules(string $role): array
+    private function extractCityFromLocation(string $location): string 
     {
-        if ($role === 'doctor') {
-            return [
-                'niom' => ['required', 'string', 'unique:doctors'],
-                'id_card_front' => ['required', 'image'],
-                'id_card_back' => ['required', 'image'],
-            ];
+        try {
+            $parts = explode(',', $location);
+            $parts = array_map('trim', $parts);
+            // Look for the city in the address components
+            foreach ($parts as $part) {
+                // Simple check - you might want to improve this logic
+                if (strlen($part) > 2 && !preg_match('/^\d+$/', $part)) {
+                    return $part;
+                }
+            }
+            return $parts[0] ?? ''; // Fallback to first component
+        } catch (\Exception $e) {
+            \Log::warning('Error extracting city:', ['location' => $location, 'error' => $e->getMessage()]);
+            return '';
         }
-        return [];
-    }
-
-    private function handleDoctorFiles(Request $request): array
-    {
-        return [
-            'id_card_front' => $request->file('id_card_front')->store('doctors/id-cards', 'public'),
-            'id_card_back' => $request->file('id_card_back')->store('doctors/id-cards', 'public'),
-        ];
     }
 }

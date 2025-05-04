@@ -4,6 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { motion } from 'framer-motion';
 import { SunIcon, MoonIcon } from '@heroicons/react/24/outline';
 import { useDarkMode } from '../../contexts/DarkModeContext';
+import { UserCircleIcon } from '@heroicons/react/24/solid';
 
 export default function Navbar() {
     const { user, logout } = useAuth();
@@ -12,7 +13,7 @@ export default function Navbar() {
     const getDashboardLink = () => {
         switch (user?.role) {
             case 'admin':
-                return '/dashboard';
+                return '/admin/dashboard';
             case 'doctor':
                 return '/doctor/dashboard';
             default:
@@ -20,7 +21,19 @@ export default function Navbar() {
         }
     };
 
+    const getProfileLink = () => {
+        switch (user?.role) {
+            case 'doctor':
+                return '/doctor/profile';
+            case 'patient':
+                return '/patient/profile';
+            default:
+                return '/404';
+        }
+    };
+
     const showDashboardLink = user && (user.role === 'admin' || user.role === 'doctor');
+    const showProfileLink = user && (user.role === 'doctor' || user.role === 'patient');
 
     return (
         <nav className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-lg border-b border-gray-200 dark:border-gray-700 fixed w-full z-50 shadow-sm">
@@ -56,6 +69,15 @@ export default function Navbar() {
 
                         {user ? (
                             <>
+                                {showProfileLink && (
+                                    <Link
+                                        to={getProfileLink()}
+                                        className="p-2 rounded-full text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                        aria-label="Profile"
+                                    >
+                                        <UserCircleIcon className="h-6 w-6" />
+                                    </Link>
+                                )}
                                 {showDashboardLink && (
                                     <Link
                                         to={getDashboardLink()}

@@ -10,6 +10,12 @@ use App\Http\Controllers\Api\AuthController;
 // Public routes
 Route::post('/contact', [ContactController::class, 'store']);
 
+// Doctor location routes
+Route::prefix('doctors')->group(function () {
+    Route::get('/location/{country}/{city}', [DoctorController::class, 'getDoctorsByLocation']);
+    Route::get('/nearby', [DoctorController::class, 'getNearbyDoctors']);
+});
+
 // Guest only routes
 Route::middleware('guest')->group(function () {
     Route::post('/register', [AuthController::class, 'register']);
@@ -17,26 +23,32 @@ Route::middleware('guest')->group(function () {
 });
 
 Route::middleware(['auth:sanctum'])->group(function () {
-    
+
+
+
     // Protected routes ------------------
-
-
     Route::get('/user', [AuthController::class, 'user']);
     Route::post('/logout', [AuthController::class, 'logout']);
-    
-    // Admin routes
-    
+    // -------------------------------
+
+
+    // Admin routes ----------------------
     Route::prefix('admin')->middleware(['role:admin'])->group(function() {
         Route::get('/dashboard', [AdminController::class, 'dashboardStats']);
+        Route::get('/doctors', [AdminController::class, 'getAllDoctors']);
+        Route::put('/doctors/{id}/verify', [AdminController::class, 'verifyDoctor']);
         Route::get('/contact-messages', [AdminController::class, 'getContactMessages']);
         Route::delete('/contact-messages/{id}', [AdminController::class, 'deleteContactMessage']);
-    });
+});
+    // -----------------------------
 
     
 
     // Doctor routes
     Route::prefix('doctor')->middleware('role:doctor')->group(function () {
         Route::get('/dashboard', [DoctorController::class, 'dashboard']);
+        Route::get('/profile', [DoctorController::class, 'getProfile']);
+        Route::post('/profile/picture', [DoctorController::class, 'updateProfilePicture']);
     });
 
     // Patient routes

@@ -19,7 +19,7 @@ api.interceptors.request.use(config => {
     return config;
 });
 
-// Handle 401 responses
+// Handle 401 responses and add better error handling
 api.interceptors.response.use(
     response => response,
     error => {
@@ -27,6 +27,15 @@ api.interceptors.response.use(
             localStorage.removeItem('token');
             window.location.href = '/login';
         }
+
+        // Add more descriptive error messages
+        const errorMessage = error.response?.data?.message || error.message;
+        console.error('API Error:', {
+            status: error.response?.status,
+            message: errorMessage,
+            details: error.response?.data
+        });
+
         return Promise.reject(error);
     }
 );

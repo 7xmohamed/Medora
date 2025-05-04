@@ -29,13 +29,26 @@ export default function HomePage() {
 
     const handleLocationSelect = (location) => {
         try {
-            if (!location.countryCode || !location.city) {
+            if (!location.city) {
                 throw new Error('Invalid location data');
             }
 
-            localStorage.setItem('userLocation', JSON.stringify(location));
+            // Store standardized location data
+            const locationData = {
+                country: location.country,
+                countryCode: location.countryCode,
+                city: location.city,
+                coordinates: {
+                    lat: location.lat,
+                    lng: location.lng
+                },
+                boundingBox: location.boundingBox,
+                fullAddress: location.display_name
+            };
+
+            localStorage.setItem('userLocation', JSON.stringify(locationData));
             const path = `/en/${location.countryCode.toLowerCase()}/${location.city.toLowerCase()}`;
-            navigate(path + (location.street ? `/${location.street.toLowerCase()}` : ''));
+            navigate(path);
         } catch (error) {
             console.error('Error saving location:', error);
         }

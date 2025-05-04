@@ -25,7 +25,7 @@ function App() {
           <Routes>
             {/* Admin Dashboard Route - Outside Layout */}
             <Route
-              path="dashboard/*"
+              path="admin/*"
               element={
                 <PrivateRoute adminOnly>
                   <AdminDashboard />
@@ -65,7 +65,6 @@ function App() {
 
             {/* Location-based routes (outside Layout to avoid conflicts) */}
             <Route path=":lang/:country/:city" element={<HomeWithLocation />} />
-            <Route path=":lang/:country/:city/:street" element={<HomeWithLocation />} />
 
             {/* Explicit 404 route */}
             <Route path="/404" element={<NotFoundPage />} />
@@ -75,7 +74,6 @@ function App() {
           </Routes>
         </BrowserRouter>
       </DarkModeProvider>
-
     </AuthProvider>
   );
 }

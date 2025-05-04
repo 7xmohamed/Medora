@@ -17,9 +17,9 @@ export default function LoginPage() {
 
     if (user) {
         if (user.role === 'patient') {
-            return <Navigate to='/patient/profile' />
+            return <Navigate to='/' />
         } else {
-            return <Navigate to="/dashboard" />;
+            return <Navigate to="/" />;
         }
     }
 

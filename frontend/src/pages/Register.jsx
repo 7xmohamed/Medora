@@ -14,8 +14,36 @@ import {
     ArrowLeftIcon,
     ArrowRightIcon,
     CheckIcon,
-    XMarkIcon
+    XMarkIcon,
+    CurrencyDollarIcon,
+    AcademicCapIcon,
+    BriefcaseIcon
 } from "@heroicons/react/24/outline";
+import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
+import markerIcon from 'leaflet/dist/images/marker-icon.png';
+
+// Add these constants at the top of the file
+const SPECIALTIES = [
+    "General Practice",
+    "Cardiology",
+    "Dermatology",
+    "Pediatrics",
+    "Neurology",
+    "Orthopedics",
+    // Add more specialties
+];
+
+const LANGUAGES = [
+    { code: 'en', name: 'English' },
+    { code: 'fr', name: 'French' },
+    { code: 'ar', name: 'Arabic' },
+    { code: 'es', name: 'Spanish' },
+    // Add more languages
+];
+
+const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
 
 export default function RegisterPage() {
     const { register, user } = useAuth();
@@ -31,6 +59,15 @@ export default function RegisterPage() {
         niom: "",
         id_card_front: null,
         id_card_back: null,
+        location: "",
+        latitude: null,
+        longitude: null,
+        speciality: '',
+        price: '',
+        languages: [],
+        experience: '',
+        education: '',
+        description: '',
     });
     const [error, setError] = useState("");
     const [step, setStep] = useState(1);
@@ -49,9 +86,44 @@ export default function RegisterPage() {
         setIsLoading(true);
 
         try {
-            await register(formData);
+            // Create FormData object for file uploads
+            const formDataObj = new FormData();
+
+            // Append all basic fields
+            Object.keys(formData).forEach(key => {
+                // Skip files and arrays as they need special handling
+                if (key !== 'id_card_front' &&
+                    key !== 'id_card_back' &&
+                    key !== 'languages') {
+                    formDataObj.append(key, formData[key]);
+                }
+            });
+
+            // Handle files
+            if (formData.id_card_front) {
+                formDataObj.append('id_card_front', formData.id_card_front);
+            }
+            if (formData.id_card_back) {
+                formDataObj.append('id_card_back', formData.id_card_back);
+            }
+
+            // Handle languages array - convert to JSON string
+            if (formData.languages.length > 0) {
+                formDataObj.append('languages', JSON.stringify(formData.languages));
+            }
+
+            // Ensure location data is properly set
+            if (formData.role === 'doctor') {
+                if (!formData.latitude || !formData.longitude) {
+                    throw new Error('Please select your location on the map');
+                }
+                formDataObj.append('description', formData.description || '');
+            }
+
+            await register(formDataObj);
         } catch (err) {
             setError(
+                err.message ||
                 err.response?.data?.message ||
                 "Registration failed. Please try again."
             );
@@ -71,10 +143,27 @@ export default function RegisterPage() {
 
     const FileInput = ({ label, name, onChange, required }) => {
         const [preview, setPreview] = useState(null);
+        const [error, setError] = useState('');
+
+        const validateFile = (file) => {
+            if (!file) return 'File is required';
+            if (!file.type.startsWith('image/')) return 'File must be an image';
+            if (file.size > MAX_FILE_SIZE) return 'File size must be less than 2MB';
+            return '';
+        };
 
         const handleFileChange = (e) => {
             const file = e.target.files[0];
+            setError('');
+
             if (file) {
+                const validationError = validateFile(file);
+                if (validationError) {
+                    setError(validationError);
+                    e.target.value = '';
+                    return;
+                }
+
                 const reader = new FileReader();
                 reader.onloadend = () => {
                     setPreview(reader.result);
@@ -142,7 +231,41 @@ export default function RegisterPage() {
                         </label>
                     </div>
                 )}
+                {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
             </div>
+        );
+    };
+
+    const LocationPicker = ({ onLocationSelect }) => {
+        const [position, setPosition] = useState(null);
+
+        const map = useMapEvents({
+            click(e) {
+                setPosition(e.latlng);
+                onLocationSelect(e.latlng);
+                // Reverse geocode to get address
+                fetch(`https://nominatim.openstreetmap.org/reverse?lat=${e.latlng.lat}&lon=${e.latlng.lng}&format=json`)
+                    .then(res => res.json())
+                    .then(data => {
+                        setFormData(prev => ({
+                            ...prev,
+                            location: data.display_name,
+                            latitude: e.latlng.lat,
+                            longitude: e.latlng.lng
+                        }));
+                    });
+            }
+        });
+
+        return position === null ? null : (
+            <Marker
+                position={position}
+                icon={L.icon({
+                    iconUrl: markerIcon,
+                    iconSize: [25, 41],
+                    iconAnchor: [12, 41]
+                })}
+            />
         );
     };
 
@@ -282,6 +405,150 @@ export default function RegisterPage() {
                                         textarea
                                     />
                                 </div>
+
+                                {formData.role === "doctor" && (
+                                    <div className="space-y-6">
+                                        <div className="grid md:grid-cols-2 gap-6">
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center">
+                                                    <AcademicCapIcon className="w-4 h-4 mr-2 text-gray-500 dark:text-gray-400" />
+                                                    Specialty
+                                                </label>
+                                                <select
+                                                    name="speciality"
+                                                    value={formData.speciality}
+                                                    onChange={handleChange}
+                                                    className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm 
+                                                        focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                                                    required
+                                                >
+                                                    <option value="">Select Specialty</option>
+                                                    {SPECIALTIES.map(specialty => (
+                                                        <option key={specialty} value={specialty}>{specialty}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                            <InputField
+                                                label="Consultation Price"
+                                                name="price"
+                                                type="number"
+                                                min="0"
+                                                value={formData.price}
+                                                onChange={handleChange}
+                                                required
+                                                Icon={CurrencyDollarIcon}
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                                Languages
+                                            </label>
+                                            <div className="mt-2 flex flex-wrap gap-2">
+                                                {LANGUAGES.map(lang => (
+                                                    <label key={lang.code} className="inline-flex items-center">
+                                                        <input
+                                                            type="checkbox"
+                                                            name="languages"
+                                                            value={lang.code}
+                                                            checked={formData.languages.includes(lang.code)}
+                                                            onChange={(e) => {
+                                                                const value = e.target.value;
+                                                                setFormData(prev => ({
+                                                                    ...prev,
+                                                                    languages: e.target.checked
+                                                                        ? [...prev.languages, value]
+                                                                        : prev.languages.filter(l => l !== value)
+                                                                }));
+                                                            }}
+                                                            className="rounded border-gray-300 text-emerald-600"
+                                                        />
+                                                        <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">
+                                                            {lang.name}
+                                                        </span>
+                                                    </label>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        <InputField
+                                            label="Experience"
+                                            name="experience"
+                                            value={formData.experience}
+                                            onChange={handleChange}
+                                            required
+                                            placeholder="e.g., 5 years in cardiology"
+                                            Icon={BriefcaseIcon}
+                                        />
+
+                                        <InputField
+                                            label="Education"
+                                            name="education"
+                                            value={formData.education}
+                                            onChange={handleChange}
+                                            required
+                                            placeholder="e.g., MD from Medical University"
+                                            textarea
+                                            Icon={AcademicCapIcon}
+                                        />
+
+                                        <InputField
+                                            label="Description"
+                                            name="description"
+                                            value={formData.description || ''}
+                                            onChange={handleChange}
+                                            required
+                                            placeholder="Brief description of your practice"
+                                            textarea
+                                            Icon={DocumentTextIcon}
+                                        />
+                                    </div>
+                                )}
+
+                                {formData.role === "doctor" && (
+                                    <div className="col-span-2">
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                            Select Your Location
+                                        </label>
+                                        <div className="h-[300px] rounded-lg overflow-hidden border border-gray-300 dark:border-gray-700">
+                                            <MapContainer
+                                                center={[34.0333, -5.0000]} // Coordinates for Fes, Morocco
+                                                zoom={13}
+                                                style={{ height: "100%", width: "100%" }}
+                                            >
+                                                <TileLayer
+                                                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                                                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                                                />
+                                                <LocationPicker
+                                                    onLocationSelect={(latlng) => {
+                                                        // Reverse geocode to get address details
+                                                        fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latlng.lat}&lon=${latlng.lng}&format=json`)
+                                                            .then(res => res.json())
+                                                            .then(data => {
+                                                                setFormData(prev => ({
+                                                                    ...prev,
+                                                                    latitude: latlng.lat,
+                                                                    longitude: latlng.lng,
+                                                                    location: data.display_name,
+                                                                    address: `${data.address.road || ''} ${data.address.city || ''} ${data.address.country || ''}`
+                                                                }));
+                                                            });
+                                                    }}
+                                                />
+                                            </MapContainer>
+                                        </div>
+                                        <input
+                                            type="text"
+                                            name="location"
+                                            value={formData.location}
+                                            onChange={handleChange}
+                                            placeholder="Selected location address"
+                                            className="mt-2 block w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md"
+                                            readOnly
+                                        />
+                                    </div>
+                                )}
                             </div>
                         )}
 
@@ -423,10 +690,10 @@ const RoleCard = ({ title, description, Icon, features, selected, onClick }) => 
     </button>
 );
 
-const InputField = ({ label, Icon, textarea = false, ...props }) => (
+const InputField = ({ label, Icon = DocumentTextIcon, textarea = false, ...props }) => (
     <div className="space-y-1">
         <label className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center">
-            <Icon className="w-4 h-4 mr-2 text-gray-500 dark:text-gray-400" />
+            {Icon && <Icon className="w-4 h-4 mr-2 text-gray-500 dark:text-gray-400" />}
             {label}
         </label>
         {textarea ? (

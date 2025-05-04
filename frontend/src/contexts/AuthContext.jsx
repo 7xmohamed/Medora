@@ -1,6 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import { createContext, useState, useContext, useEffect } from 'react';
 import api from '../services/api';
+import axios from '../services/api';
 
 const AuthContext = createContext({});
 
@@ -70,23 +71,26 @@ export function AuthProvider({ children }) {
         }
     };
 
-    const register = async (userData) => {
+    const register = async (formData) => {
         try {
-            const formData = new FormData();
-            Object.keys(userData).forEach(key => {
-                formData.append(key, userData[key]);
-            });
+            const config = {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                    'Accept': 'application/json',
+                },
+            };
 
-            const response = await api.post('/register', formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
-            });
-            localStorage.setItem('token', response.data.token);
-            setUser(response.data.user);
-            setError(null);
+            const response = await axios.post('/register', formData, config);
+
+            if (response.data.user && response.data.token) {
+                setUser(response.data.user);
+                localStorage.setItem('token', response.data.token);
+                axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
+            }
             return response.data;
         } catch (error) {
-            setError(error.response?.data?.message || 'Registration failed');
-            throw error;
+            console.error('Registration error:', error.response?.data || error);
+            throw error.response?.data || error;
         }
     };
 
