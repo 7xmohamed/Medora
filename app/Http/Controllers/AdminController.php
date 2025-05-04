@@ -6,6 +6,8 @@ use App\Models\User;
 use App\Models\Doctor;
 use App\Models\ContactMessage;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class AdminController extends Controller
 {
@@ -106,7 +108,7 @@ class AdminController extends Controller
     {
         try {
             $doctors = Doctor::with(['user' => function($query) {
-                $query->select('id', 'name', 'email', 'profile_picture');
+                $query->select('id', 'name', 'email', 'profile_picture', 'id_card_front', 'id_card_back');
             }])->get();
 
             $formattedDoctors = $doctors->map(function ($doctor) {
@@ -121,9 +123,17 @@ class AdminController extends Controller
                     'education' => $doctor->education ?? 'Not specified',
                     'created_at' => $doctor->created_at,
                     'profile_picture' => $doctor->user->profile_picture ? 
-                        asset('storage/' . $doctor->user->profile_picture) : null,
-                    'id_card_front' => $doctor->id_card_front_url,
-                    'id_card_back' => $doctor->id_card_back_url
+                        Storage::disk('public')->url($doctor->user->profile_picture) : null,
+                    'id_card_front' => $doctor->user->id_card_front ? 
+                        Storage::disk('public')->url($doctor->user->id_card_front) : null,
+                    'id_card_back' => $doctor->user->id_card_back ? 
+                        Storage::disk('public')->url($doctor->user->id_card_back) : null,
+                    'verification_documents' => [
+                        'front' => $doctor->user->id_card_front ? 
+                            Storage::disk('public')->url($doctor->user->id_card_front) : null,
+                        'back' => $doctor->user->id_card_back ? 
+                            Storage::disk('public')->url($doctor->user->id_card_back) : null,
+                    ]
                 ];
             });
             
@@ -226,7 +236,7 @@ class AdminController extends Controller
                 'address' => $user->address,
                 'created_at' => $user->created_at,
                 'profile_picture' => $user->profile_picture ? 
-                    asset('storage/' . $user->profile_picture) : null,
+                    Storage::disk('public')->url($user->profile_picture) : null,
             ];
 
             if ($user->doctor) {
@@ -235,6 +245,12 @@ class AdminController extends Controller
                     'niom' => $user->doctor->niom,
                     'experience' => $user->doctor->experience,
                     'education' => $user->doctor->education,
+                    'verification_documents' => [
+                        'front' => $user->id_card_front ? 
+                            Storage::disk('public')->url($user->id_card_front) : null,
+                        'back' => $user->id_card_back ? 
+                            Storage::disk('public')->url($user->id_card_back) : null,
+                    ],
                     'is_verified' => $user->doctor->is_verified,
                 ];
             }

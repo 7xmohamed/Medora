@@ -77,6 +77,12 @@ class Doctor extends Model
         });
     }
 
+    public function getProfilePictureUrlAttribute()
+    {
+        return $this->user->profile_picture ? 
+            Storage::disk('public')->url($this->user->profile_picture) : null;
+    }
+
     public function getIdCardFrontUrlAttribute()
     {
         return $this->user->id_card_front ? 

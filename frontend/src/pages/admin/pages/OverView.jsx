@@ -164,10 +164,7 @@ export default function Overview() {
                                             <p className="text-sm text-gray-500 dark:text-gray-400">{stat.name}</p>
                                             <div className="flex items-center gap-2">
                                                 <p className="text-2xl font-semibold dark:text-white">{stat.value}</p>
-                                                <span className="text-xs text-emerald-500 dark:text-emerald-400 flex items-center">
-                                                    <ArrowTrendingUpIcon className="h-3 w-3 mr-0.5" />
-                                                    12%
-                                                </span>
+                                                
                                             </div>
                                         </div>
                                     </div>

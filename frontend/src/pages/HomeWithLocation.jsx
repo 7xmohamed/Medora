@@ -3,10 +3,10 @@ import { useState, useEffect, useMemo, useCallback, memo, Suspense } from 'react
 import { useNavigate, useParams } from 'react-router-dom';
 import Navbar from '../components/Layout/Navbar';
 import Footer from '../components/Layout/Footer';
-import { FaCalendarAlt, FaMapMarkerAlt, FaChevronRight, FaMapMarked, FaInfoCircle, FaUserMd, FaHome, FaCheckCircle } from 'react-icons/fa';
+import { FaCalendarAlt, FaMapMarkerAlt, FaChevronRight, FaMapMarked, FaInfoCircle, FaUserMd, FaHome, FaCheckCircle, FaFilter } from 'react-icons/fa';
 import api from '../services/api';
 import React from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 class ErrorBoundary extends React.Component {
     constructor(props) {
@@ -143,6 +143,8 @@ function HomeWithLocation() {
     const [isFiltering, setIsFiltering] = useState(false);
     const [activeFilters, setActiveFilters] = useState(0);
     const [searchTimeout, setSearchTimeout] = useState(null);
+    const [filteredDoctors, setFilteredDoctors] = useState([]);
+    const [showMobileFilters, setShowMobileFilters] = useState(false);
 
     const fetchDoctors = useCallback(async () => {
         try {
@@ -193,50 +195,41 @@ function HomeWithLocation() {
         fetchDoctors();
     }, [fetchDoctors]);
 
-    const applyFilters = useCallback(() => {
-        setIsFiltering(true);
-        if (searchTimeout) clearTimeout(searchTimeout);
+    useEffect(() => {
+        let filtered = [...data.doctors];
 
-        const timeoutId = setTimeout(() => {
-            let filtered = [...data.doctors];
-
-            if (filters.specialties.length > 0) {
-                filtered = filtered.filter(doctor =>
-                    filters.specialties.includes(doctor.speciality)
-                );
-            }
-
-            const selectedRange = PRICE_RANGES.find(range => range.id === selectedPriceRange);
-            if (selectedRange && selectedRange.id !== 'all') {
-                filtered = filtered.filter(doctor =>
-                    doctor.price >= selectedRange.min &&
-                    doctor.price <= selectedRange.max
-                );
-            }
-
-            filtered.sort((a, b) => {
-                if (sortOption === 'price') {
-                    return sortOrder === 'asc'
-                        ? a.price - b.price
-                        : b.price - a.price;
-                } else if (sortOption === 'rating') {
-                    return sortOrder === 'asc'
-                        ? (a.rating || 0) - (b.rating || 0)
-                        : (b.rating || 0) - (a.rating || 0);
-                }
-                return 0;
-            });
-
-            setIsFiltering(false);
-
-            setActiveFilters(
-                (filters.specialties.length > 0 ? 1 : 0) +
-                (selectedPriceRange !== 'all' ? 1 : 0)
+        // Apply specialty filter
+        if (filters.specialties.length > 0) {
+            filtered = filtered.filter(doctor =>
+                filters.specialties.includes(doctor.speciality)
             );
-        }, 300);
+        }
 
-        setSearchTimeout(timeoutId);
-    }, [data.doctors, filters.specialties, searchTimeout, selectedPriceRange, sortOption, sortOrder]);
+        // Apply price range filter
+        const selectedRange = PRICE_RANGES.find(range => range.id === selectedPriceRange);
+        if (selectedRange && selectedRange.id !== 'all') {
+            filtered = filtered.filter(doctor =>
+                doctor.price >= selectedRange.min && doctor.price <= selectedRange.max
+            );
+        }
+
+        // Apply sorting
+        filtered.sort((a, b) => {
+            if (sortOption === 'price') {
+                return sortOrder === 'asc' ? a.price - b.price : b.price - a.price;
+            } else if (sortOption === 'distance') {
+                // Add distance sorting logic here if needed
+                return 0;
+            }
+            return 0;
+        });
+
+        setFilteredDoctors(filtered);
+        setActiveFilters(
+            (filters.specialties.length > 0 ? 1 : 0) +
+            (selectedPriceRange !== 'all' ? 1 : 0)
+        );
+    }, [data.doctors, filters.specialties, selectedPriceRange, sortOption, sortOrder]);
 
     const allSpecialties = useMemo(() => {
         return [...new Set(data.doctors.map(doctor => doctor.speciality))];
@@ -295,39 +288,150 @@ function HomeWithLocation() {
 
                     {data.doctors.length > 0 ? (
                         <>
-                            <div className="flex justify-between items-center mb-6">
+                            <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
                                 <p className="text-gray-600 dark:text-gray-400">
-                                    {data.doctors.length} {data.doctors.length === 1 ? 'verified doctor' : 'verified doctors'} found
+                                    {filteredDoctors.length} {filteredDoctors.length === 1 ? 'verified doctor' : 'verified doctors'} found
                                     {(filters.specialties.length > 0 || selectedPriceRange !== 'all') && (
                                         <span className="text-sm text-gray-500 ml-2">
                                             (Filtered from {data.doctors.length})
                                         </span>
                                     )}
                                 </p>
-                                <div className="flex items-center">
-                                    <select
-                                        value={sortOption}
-                                        onChange={(e) => setSortOption(e.target.value)}
-                                        className="appearance-none bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md pl-3 pr-8 py-2 text-sm"
+                                <div className="flex items-center gap-3">
+                                    <button
+                                        onClick={() => setShowMobileFilters(true)}
+                                        className="md:hidden inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700"
                                     >
-                                        <option value="price">Sort by Price</option>
-                                        <option value="distance">Sort by Distance</option>
-                                    </select>
-                                    <select
-                                        value={sortOrder}
-                                        onChange={(e) => setSortOrder(e.target.value)}
-                                        className="ml-2 appearance-none bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md pl-3 pr-8 py-2 text-sm"
-                                    >
-                                        <option value="asc">Ascending</option>
-                                        <option value="desc">Descending</option>
-                                    </select>
+                                        <FaFilter className="w-4 h-4 mr-2" />
+                                        Filters {activeFilters > 0 && `(${activeFilters})`}
+                                    </button>
+                                    <div className="flex gap-2">
+                                        <select
+                                            value={sortOption}
+                                            onChange={(e) => setSortOption(e.target.value)}
+                                            className="appearance-none bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md pl-3 pr-8 py-2 text-sm min-w-[120px]"
+                                        >
+                                            <option value="price">Sort by Price</option>
+                                            <option value="distance">Sort by Distance</option>
+                                        </select>
+                                        <select
+                                            value={sortOrder}
+                                            onChange={(e) => setSortOrder(e.target.value)}
+                                            className="appearance-none bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md pl-3 pr-8 py-2 text-sm"
+                                        >
+                                            <option value="asc">Ascending</option>
+                                            <option value="desc">Descending</option>
+                                        </select>
+                                    </div>
                                 </div>
                             </div>
 
                             <div className="flex flex-col md:flex-row gap-6">
-                                <div className="md:w-72">
-                                    <div className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-lg p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700/50 sticky top-28">
-                                        {/* Filter Header */}
+                                <AnimatePresence>
+                                    {/* Mobile Filter Drawer */}
+                                    {showMobileFilters && (
+                                        <>
+                                            <motion.div
+                                                initial={{ opacity: 0 }}
+                                                animate={{ opacity: 0.5 }}
+                                                exit={{ opacity: 0 }}
+                                                className="fixed inset-0 bg-black md:hidden z-40"
+                                                onClick={() => setShowMobileFilters(false)}
+                                            />
+                                            <motion.div
+                                                initial={{ x: '100%' }}
+                                                animate={{ x: 0 }}
+                                                exit={{ x: '100%' }}
+                                                transition={{ type: 'tween' }}
+                                                className="fixed right-0 top-0 h-full w-[300px] bg-white dark:bg-gray-800 md:hidden z-50 overflow-y-auto"
+                                            >
+                                                <div className="p-4 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800 z-10">
+                                                    <div className="flex justify-between items-center">
+                                                        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Filters</h2>
+                                                        <button
+                                                            onClick={() => setShowMobileFilters(false)}
+                                                            className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700"
+                                                        >
+                                                            <span className="sr-only">Close</span>
+                                                            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                            </svg>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                <div className="p-4">
+                                                    {/* Price Range Section */}
+                                                    <div className="space-y-4 mb-8">
+                                                        <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                                            Price Range
+                                                        </h4>
+                                                        <div className="grid grid-cols-1 gap-2">
+                                                            {PRICE_RANGES.map((range) => (
+                                                                <button
+                                                                    key={range.id}
+                                                                    onClick={() => setSelectedPriceRange(range.id)}
+                                                                    className={`w-full px-4 py-2.5 rounded-lg text-left transition-all duration-200 ${selectedPriceRange === range.id
+                                                                        ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 ring-1 ring-emerald-500/20'
+                                                                        : 'hover:bg-gray-50 dark:hover:bg-gray-700/50 text-gray-600 dark:text-gray-400'
+                                                                        }`}
+                                                                >
+                                                                    <div className="flex items-center justify-between">
+                                                                        <span className="text-sm">{range.label}</span>
+                                                                        {range.badge && (
+                                                                            <span className={`text-xs px-2 py-1 rounded-full ${selectedPriceRange === range.id
+                                                                                ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300'
+                                                                                : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
+                                                                                }`}>
+                                                                                {range.badge}
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Specialties Section */}
+                                                    {allSpecialties.length > 0 && (
+                                                        <div className="space-y-4">
+                                                            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                                                Specialties
+                                                            </h4>
+                                                            <div className="space-y-2 max-h-[280px] overflow-y-auto custom-scrollbar">
+                                                                {allSpecialties.map(specialty => (
+                                                                    <label
+                                                                        key={specialty}
+                                                                        className="flex items-center group p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/30 cursor-pointer transition-colors"
+                                                                    >
+                                                                        <input
+                                                                            type="checkbox"
+                                                                            name="specialties"
+                                                                            value={specialty}
+                                                                            checked={filters.specialties.includes(specialty)}
+                                                                            onChange={handleFilterChange}
+                                                                            className="w-4 h-4 rounded border-gray-300 text-emerald-500 focus:ring-emerald-500/20 transition-colors"
+                                                                        />
+                                                                        <span className="ml-3 text-sm text-gray-600 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-gray-200 transition-colors">
+                                                                            {specialty}
+                                                                        </span>
+                                                                    </label>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </motion.div>
+                                        </>
+                                    )}
+                                </AnimatePresence>
+
+                                {/* Desktop Filters */}
+                                <motion.div
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    className="hidden md:block md:w-72 shrink-0"
+                                >
+                                    <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 sticky top-28">
                                         <div className="flex justify-between items-center mb-6">
                                             <h3 className="text-lg font-medium text-gray-800 dark:text-white">
                                                 Filters
@@ -358,16 +462,16 @@ function HomeWithLocation() {
                                                         key={range.id}
                                                         onClick={() => setSelectedPriceRange(range.id)}
                                                         className={`w-full px-4 py-2.5 rounded-lg text-left transition-all duration-200 ${selectedPriceRange === range.id
-                                                                ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 ring-1 ring-emerald-500/20'
-                                                                : 'hover:bg-gray-50 dark:hover:bg-gray-700/50 text-gray-600 dark:text-gray-400'
+                                                            ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 ring-1 ring-emerald-500/20'
+                                                            : 'hover:bg-gray-50 dark:hover:bg-gray-700/50 text-gray-600 dark:text-gray-400'
                                                             }`}
                                                     >
                                                         <div className="flex items-center justify-between">
                                                             <span className="text-sm">{range.label}</span>
                                                             {range.badge && (
                                                                 <span className={`text-xs px-2 py-1 rounded-full ${selectedPriceRange === range.id
-                                                                        ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300'
-                                                                        : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
+                                                                    ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300'
+                                                                    : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
                                                                     }`}>
                                                                     {range.badge}
                                                                 </span>
@@ -407,9 +511,14 @@ function HomeWithLocation() {
                                             </div>
                                         )}
                                     </div>
-                                </div>
+                                </motion.div>
 
-                                <div className="flex-grow">
+                                {/* Doctor Cards */}
+                                <motion.div
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    className="flex-grow"
+                                >
                                     <ErrorBoundary
                                         fallback={
                                             <div className="text-center text-red-600 dark:text-red-400 p-4">
@@ -417,13 +526,13 @@ function HomeWithLocation() {
                                             </div>
                                         }
                                     >
-                                        <div className="space-y-4">
-                                            {data.doctors.map((doctor) => (
+                                        <div className="grid gap-4 grid-cols-1">
+                                            {filteredDoctors.map((doctor) => (
                                                 <DoctorCard key={doctor.id} doctor={doctor} />
                                             ))}
                                         </div>
                                     </ErrorBoundary>
-                                </div>
+                                </motion.div>
                             </div>
                         </>
                     ) : (

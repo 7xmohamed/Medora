@@ -26,9 +26,9 @@ class AuthController extends Controller
                     // Generate unique filename
                     $filename = uniqid('doc_') . '_' . time() . '.' . $file->getClientOriginalExtension();
                     
-                    // Store file and get path
+                    // Store in the doctors/documents directory
                     $path = $file->storeAs(
-                        'doctors/id-cards', 
+                        'doctors/documents', 
                         $filename, 
                         'public'
                     );

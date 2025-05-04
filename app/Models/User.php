@@ -8,11 +8,12 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use App\Traits\HasStorageFiles;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
+    use HasApiTokens, HasFactory, Notifiable, SoftDeletes, HasStorageFiles;
 
     const ROLE_ADMIN = 'admin';
     const ROLE_DOCTOR = 'doctor';
@@ -55,6 +56,12 @@ class User extends Authenticatable
         'password' => 'hashed',
     ];
 
+    protected $appends = [
+        'profile_picture_url',
+        'id_card_front_url',
+        'id_card_back_url'
+    ];
+
     // Relations between other models----------
 
     public function doctor(){
@@ -90,5 +97,20 @@ class User extends Authenticatable
     public function hasRole($role): bool
     {
         return $this->role === $role;
+    }
+
+    public function getProfilePictureUrlAttribute()
+    {
+        return $this->getProfilePictureUrl();
+    }
+
+    public function getIdCardFrontUrlAttribute()
+    {
+        return $this->getIdCardFrontUrl();
+    }
+
+    public function getIdCardBackUrlAttribute()
+    {
+        return $this->getIdCardBackUrl();
     }
 }
