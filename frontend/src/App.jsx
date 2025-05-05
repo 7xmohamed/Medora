@@ -15,6 +15,8 @@ import { DarkModeProvider } from './contexts/DarkModeContext';
 import ForgotPassword from './pages/ForgetPassword';
 import ScrollToTop from './components/ScrollToTop';
 import AdminRoutes from './routes/AdminRoutes';
+import ReservationPayment from './pages/patient/ReservationPayment';
+import AppointmentDetails from './pages/appointment/AppointmentDetails';
 
 function App() {
   return (
@@ -61,6 +63,9 @@ function App() {
                   </PrivateRoute>
                 }
               />
+            <Route path="patient/reservation/:doctorId" element={<ReservationPayment />} />
+            <Route path="doctor/appointment/:appoId" element={<AppointmentDetails />} />
+            <Route path="patient/appointment/:appoId" element={<AppointmentDetails />} />
             </Route>
 
             {/* Location-based routes (outside Layout to avoid conflicts) */}

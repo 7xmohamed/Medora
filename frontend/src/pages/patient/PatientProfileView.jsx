@@ -111,7 +111,6 @@ export default function PatientProfileView() {
                 }
 
                 if (useMockData) {
-                    setReservations(mockReservations);
                     setAnalytics(mockAnalytics);
                 } else {
                     const reservationsRes = await api.get('/patient/reservations');
@@ -128,6 +127,18 @@ export default function PatientProfileView() {
         fetchData();
     }, [useMockData]);
 
+    useEffect(()=>{
+        const fetchReservations = async () => {
+            try {
+                const { data } = await api.get('/patient/getpatientreservations');
+                setReservations(data.data);
+            } catch (error) {
+                console.error('Error fetching reservations:', error);
+            }
+        }
+        fetchReservations();
+    },[])
+    console.log(reservations);
     const handleEditChange = (e) => {
         const { name, value } = e.target;
         setEditForm(prev => ({
