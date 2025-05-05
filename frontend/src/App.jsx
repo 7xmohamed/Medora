@@ -21,6 +21,7 @@ import Faqs from './pages/medora/Faqs';
 import PrivacyPolicy from './pages/medora/PrivacyPolicy';
 import Terms from './pages/medora/Terms';
 import HealthTips from './pages/medora/HealthTips';
+import DoctorPublicProfile from './pages/doctor/DoctorPublicProfile';
 
 function App() {
   return (
@@ -47,11 +48,12 @@ function App() {
               <Route path="register" element={<RegisterPage />} />
               <Route path="about" element={<AboutUs />} />
               <Route path="contact" element={<ContactUs />} />
-              <Route path='FAQs' element={<Faqs />}/>
-              <Route path='PrivacyPolicy' element={<PrivacyPolicy />}/>
-              <Route path='Terms' element={<Terms />}/>
-              <Route path='HealthTips' element={<HealthTips />}/>
+              <Route path='FAQs' element={<Faqs />} />
+              <Route path='PrivacyPolicy' element={<PrivacyPolicy />} />
+              <Route path='Terms' element={<Terms />} />
+              <Route path='HealthTips' element={<HealthTips />} />
               <Route path="forget-password" element={<ForgotPassword />} />
+              <Route path="/doctor/public/:id" element={<DoctorPublicProfile />} />
 
               {/* Role-specific routes */}
               <Route
@@ -71,9 +73,9 @@ function App() {
                   </PrivateRoute>
                 }
               />
-            <Route path="patient/reservation/:doctorId" element={<ReservationPayment />} />
-            <Route path="doctor/appointment/:appointmentId" element={<AppointmentDetails />} />
-            <Route path="patient/appointment/:appointmentId" element={<AppointmentDetails />} />
+              <Route path="patient/reservation/:doctorId" element={<ReservationPayment />} />
+              <Route path="doctor/appointment/:appointmentId" element={<AppointmentDetails />} />
+              <Route path="patient/appointment/:appointmentId" element={<AppointmentDetails />} />
             </Route>
 
             {/* Location-based routes (outside Layout to avoid conflicts) */}

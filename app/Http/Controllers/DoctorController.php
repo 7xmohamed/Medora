@@ -20,7 +20,7 @@ class DoctorController extends Controller
                     $query->whereRaw('LOWER(city) LIKE ?', ['%' . $searchCity . '%'])
                           ->orWhereRaw('LOWER(location) LIKE ?', ['%' . $searchCity . '%']);
                 })
-                ->where('is_verified', 1) // Only get verified doctors
+                ->where('is_verified', 1)
                 ->get();
 
             return response()->json([
@@ -30,7 +30,8 @@ class DoctorController extends Controller
                         'user' => [
                             'name' => $doctor->user->name,
                             'niom' => $doctor->user->niom ?? null,
-                            'is_verified' => $doctor->is_verified, // Include verification status
+                            'is_verified' => $doctor->is_verified, 
+
                             'profile_picture' => $doctor->user->profile_picture 
                                 ? (filter_var($doctor->user->profile_picture, FILTER_VALIDATE_URL) 
                                     ? $doctor->user->profile_picture 
@@ -45,6 +46,7 @@ class DoctorController extends Controller
                         'price' => $doctor->price,
                         'education' => $doctor->education ?? '',
                         'experience' => $doctor->experience ?? '',
+                        'languages' => $doctor->languages ?? [],
                         'availabilities' => $doctor->availabilities->map(function ($availability) {
                             return [
                                 'day_of_week' => $availability->day_of_week,
@@ -79,7 +81,7 @@ class DoctorController extends Controller
             $radius = $request->radius ?? 50;
 
             $doctors = Doctor::with(['user', 'availabilities'])
-                ->where('is_verified', 1) // Only get verified doctors
+                ->where('is_verified', 1)
                 ->nearby($latitude, $longitude, $radius)
                 ->get();
 
@@ -104,6 +106,7 @@ class DoctorController extends Controller
                         'price' => $doctor->price,
                         'education' => $doctor->education ?? '',
                         'experience' => $doctor->experience ?? '',
+                        'languages' => $doctor->languages ?? [],
                         'availabilities' => $doctor->availabilities->map(function ($availability) {
                             return [
                                 'day_of_week' => $availability->day_of_week,
@@ -141,7 +144,7 @@ class DoctorController extends Controller
                 'total_prescriptions' => $doctor->reservations()
                     ->whereHas('prescription')
                     ->count(),
-                'satisfaction_rate' => '95%', // You can implement a real rating system later
+                'satisfaction_rate' => '95%',
                 'total_revenue' => $doctor->reservations()
                     ->where('payment_status', 'paid')
                     ->sum('price'),
@@ -161,7 +164,7 @@ class DoctorController extends Controller
                         'patient_name' => $reservation->patient->user->name,
                         'time' => $reservation->created_at->format('h:i A'),
                         'status' => $reservation->reservation_status,
-                        'reason' => 'Medical Consultation', // You can add this field to reservations if needed
+                        'reason' => 'Medical Consultation',
                         'patient_id' => $reservation->patient_id,
                         'price' => $reservation->price
                     ];
@@ -357,6 +360,7 @@ class DoctorController extends Controller
             return $startTime . ' - ' . $endTime;
         }
     }
+
     public function getDoctorById($doctorId)
     {
         $doctor = Doctor::with(['user', 'availabilities'])->findOrFail($doctorId);
@@ -389,4 +393,39 @@ class DoctorController extends Controller
         ]);
     }
 
+    public function getPublicProfile($doctorId)
+    {
+        try {
+            $doctor = Doctor::with(['user', 'availabilities'])
+                ->where('id', $doctorId)
+                ->where('is_verified', 1)
+                ->firstOrFail();
+            
+            return response()->json([
+                'id' => $doctor->id,
+                'name' => $doctor->user->name,
+                'email' => $doctor->user->email, 
+                'phone' => $doctor->user->phone,
+                'profile_picture' => $doctor->user->profile_picture ? asset('storage/' . $doctor->user->profile_picture) : null,
+                'speciality' => $doctor->speciality,
+                'location' => $doctor->location,
+                'latitude' => $doctor->latitude,
+                'longitude' => $doctor->longitude,
+                'description' => $doctor->description,
+                'experience' => $doctor->experience,
+                'education' => $doctor->education,
+                'languages' => $doctor->languages,
+                'price' => $doctor->price,
+                'availabilities' => $doctor->availabilities->map(function($a) {
+                    return [
+                        'day_of_week' => $a->day_of_week,
+                        'start_time' => $a->start_time,
+                        'end_time' => $a->end_time
+                    ];
+                })->values()->toArray()
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Doctor not found'], 404);
+        }
+    }
 }

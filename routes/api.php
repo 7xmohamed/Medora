@@ -12,6 +12,11 @@ use App\Http\Controllers\ReservationController;
 // Public routes
 Route::post('/contact', [ContactController::class, 'store']);
 
+// Public doctor routes
+Route::get('/doctors/location/{country}/{city}', [DoctorController::class, 'getDoctorsByLocation']);
+Route::get('/doctors/nearby', [DoctorController::class, 'getNearbyDoctors']);
+Route::get('/doctors/public/{id}', [DoctorController::class, 'getPublicProfile']);
+
 // Doctor location routes
 Route::prefix('doctors')->group(function () {
     Route::get('/location/{country}/{city}', [DoctorController::class, 'getDoctorsByLocation']);
@@ -60,7 +65,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/dashboard', [DoctorController::class, 'dashboard']);
         Route::get('/profile', [DoctorController::class, 'getProfile']);
         Route::post('/profile/picture', [DoctorController::class, 'updateProfilePicture']);
-        // Add new availability routes
+
         Route::get('/availabilities', [DoctorController::class, 'getAvailabilities']);
         Route::post('/availabilities', [DoctorController::class, 'storeAvailability']);
         Route::delete('/availabilities/{id}', [DoctorController::class, 'deleteAvailability']);

@@ -7,6 +7,7 @@ import { FaCalendarAlt, FaMapMarkerAlt, FaChevronRight, FaMapMarked, FaInfoCircl
 import api from '../services/api';
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '../contexts/AuthContext';
 
 class ErrorBoundary extends React.Component {
     constructor(props) {
@@ -26,12 +27,105 @@ class ErrorBoundary extends React.Component {
     }
 }
 
+const RoleCheckModal = ({ isOpen, onClose, onConfirm }) => {
+    return (
+        <AnimatePresence>
+            {isOpen && (
+                <>
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 0.5 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-black/50 z-50"
+                        onClick={onClose}
+                    />
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                        className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-md bg-white dark:bg-gray-800 rounded-xl shadow-xl z-50 overflow-hidden p-6"
+                    >
+                        <h3 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">
+                            Patient Account Required
+                        </h3>
+                        <p className="text-gray-600 dark:text-gray-300 mb-6">
+                            Only patients can make reservations. Please use a patient account to book appointments.
+                        </p>
+                        <div className="flex justify-end">
+                            <button
+                                onClick={onClose}
+                                className="px-4 py-2 text-white bg-emerald-600 rounded-lg hover:bg-emerald-700"
+                            >
+                                Got it
+                            </button>
+                        </div>
+                    </motion.div>
+                </>
+            )}
+        </AnimatePresence>
+    );
+};
+
 const DoctorCard = memo(({ doctor }) => {
+    const { user: authUser } = useAuth();
+    const [showRoleModal, setShowRoleModal] = useState(false);
+    const navigate = useNavigate();
+
     const formatAvailability = (availabilities) => {
         if (!availabilities || availabilities.length === 0) return "No availability";
         const nextAvailable = availabilities[0];
         return `Available ${nextAvailable.day_of_week} ${nextAvailable.start_time}`;
     };
+
+    const handleProfileClick = () => {
+        navigate(`/doctor/public/${doctor.id}`);
+    };
+
+    const handleBooking = () => {
+        if (!authUser) {
+            navigate(`/login?redirect=/patient/reservation/${doctor.id}`);
+            return;
+        }
+
+        // Show role restriction modal for doctors and admins
+        if (authUser.role === 'doctor' || authUser.role === 'admin') {
+            setShowRoleModal(true);
+            return;
+        }
+
+        navigate(`/patient/reservation/${doctor.id}`);
+    };
+
+    const RoleModal = () => (
+        <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+        >
+            <motion.div
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.95, opacity: 0 }}
+                className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full shadow-xl"
+            >
+                <h3 className="text-lg font-semibold mb-2 dark:text-white">
+                    Booking Not Available
+                </h3>
+                <p className="text-gray-600 dark:text-gray-300 mb-4">
+                    {authUser?.role === 'admin'
+                        ? "Administrators cannot make reservations. Please use a patient account."
+                        : "Doctors cannot make reservations. Please use a patient account."}
+                </p>
+                <button
+                    onClick={() => setShowRoleModal(false)}
+                    className="w-full px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+                >
+                    Understood
+                </button>
+            </motion.div>
+        </motion.div>
+    );
 
     const {
         user = {},
@@ -46,71 +140,102 @@ const DoctorCard = memo(({ doctor }) => {
     const [imageError, setImageError] = useState(false);
 
     return (
-        <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-6 mb-4 hover:shadow-md dark:hover:shadow-gray-800/50 transition-shadow bg-white dark:bg-gray-800">
-            <div className="flex flex-col md:flex-row gap-6">
-                <div className="flex-shrink-0">
-                    {user.profile_picture && !imageError ? (
-                        <img
-                            src={user.profile_picture}
-                            alt={user.name}
-                            className="w-24 h-24 rounded-full object-cover border-2 border-emerald-200 dark:border-emerald-800"
-                            onError={() => setImageError(true)}
-                        />
-                    ) : (
-                        <div className="w-24 h-24 rounded-full flex items-center justify-center bg-emerald-100 dark:bg-emerald-900/40 border-2 border-emerald-200 dark:border-emerald-800">
-                            <FaUserMd className="w-12 h-12 text-emerald-600 dark:text-emerald-400" />
-                        </div>
-                    )}
+        <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="group bg-white dark:bg-gray-800 rounded-lg shadow-sm hover:shadow-md transition-all duration-300 border border-gray-100 dark:border-gray-700 overflow-hidden relative"
+        >
+            <div className="absolute top-3 right-3">
+                <div className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-emerald-50 dark:bg-emerald-900/30">
+                    <span className="text-emerald-800 dark:text-emerald-300">{price} Dh</span>
+                    <span className="ml-1 text-xs text-emerald-600 dark:text-emerald-400">/visit</span>
                 </div>
-                <div className="flex-grow">
-                    <div className="flex flex-col md:flex-row md:justify-between">
-                        <div>
-                            <h3 className="text-xl font-semibold text-gray-800 dark:text-white flex items-center gap-1">
-                                {user.name || 'Unknown Doctor'}
-                                {is_verified === 1 && (
-                                    <FaCheckCircle className="text-emerald-500 dark:text-emerald-400" title="Verified Doctor" />
-                                )}
-                            </h3>
-                            <p className="text-emerald-600 dark:text-emerald-400 font-medium">{speciality}</p>
-                        </div>
-                        <div className="mt-2 md:mt-0">
-                            <span className="text-gray-700 dark:text-gray-300 font-medium">{price} Dh</span>
-                            <span className="text-gray-500 dark:text-gray-400 text-sm">/consultation</span>
-                        </div>
+            </div>
+
+            <div className="p-3 sm:p-4">
+                <div className="flex items-start gap-3">
+
+                    {/* Profile Image Section */}
+                    <div className="relative flex-shrink-0">
+                        {user.profile_picture && !imageError ? (
+                            <img
+                                src={user.profile_picture}
+                                alt={user.name}
+                                className="w-16 h-16 rounded-lg object-cover border-2 border-emerald-200 dark:border-emerald-800"
+                                onError={() => setImageError(true)}
+                            />
+                        ) : (
+                            <div className="w-16 h-16 rounded-lg flex items-center justify-center bg-emerald-50 dark:bg-emerald-900/40 border-2 border-emerald-200 dark:border-emerald-800">
+                                <FaUserMd className="w-8 h-8 text-emerald-500" />
+                            </div>
+                        )}
+                        {is_verified === 1 && (
+                            <div className="absolute -top-1 -right-1 bg-white dark:bg-gray-800 rounded-full p-0.5">
+                                <FaCheckCircle className="w-4 h-4 text-emerald-500" />
+                            </div>
+                        )}
                     </div>
 
-                    {description && (
-                        <p className="text-gray-600 dark:text-gray-300 mt-3 text-sm">{description}</p>
-                    )}
-
-                    {location && (
-                        <div className="mt-3 flex items-center text-sm text-gray-600 dark:text-gray-400">
-                            <FaMapMarkerAlt className="text-emerald-400 dark:text-emerald-500 mr-2" />
-                            {location}
+                    {/* Info Section */}
+                    <div className="flex-1 min-w-0">
+                        <div className="flex flex-col xs:flex-row xs:items-center xs:justify-between gap-1 xs:gap-2">
+                            <div className="min-w-0">
+                                <h3 className="text-base font-medium text-gray-900 dark:text-white truncate">
+                                    {user.name || 'Unknown Doctor'}
+                                </h3>
+                                <p className="text-sm text-emerald-600 dark:text-emerald-400 truncate">
+                                    {speciality}
+                                </p>
+                            </div>
                         </div>
-                    )}
 
-                    <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                            <div className="flex items-center">
-                                <FaCalendarAlt className="text-emerald-500 dark:text-emerald-400 mr-2" />
-                                <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
+                        {description && (
+                            <p className="mt-2 text-sm text-gray-500 dark:text-gray-400 line-clamp-2 break-words">
+                                {description}
+                            </p>
+                        )}
+
+                        {/* Location and Availability */}
+                        <div className="mt-3 space-y-2">
+                            {location && (
+                                <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                                    <FaMapMarkerAlt className="w-4 h-4 text-emerald-500 dark:text-emerald-400 flex-shrink-0" />
+                                    <span className="ml-2 truncate">{location}</span>
+                                </div>
+                            )}
+                            <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                                <FaCalendarAlt className="w-4 h-4 text-emerald-500 dark:text-emerald-400 flex-shrink-0" />
+                                <span className="ml-2 truncate">
                                     {formatAvailability(availabilities)}
                                 </span>
                             </div>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="mt-4 flex justify-end gap-2">
                             <button
-                                className="bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 text-white px-4 py-2 rounded-md text-sm font-medium flex items-center justify-center transition-all duration-200 shadow-sm"
-                                onClick={() => {
-                                    window.location.href = `/patient/reservation/${doctor.id}`;
-                                }}
+                                onClick={handleProfileClick}
+                                className="px-4 py-2 text-sm font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400 dark:hover:bg-emerald-800/50 rounded-md transition-colors flex items-center justify-center gap-1"
                             >
-                                Book Appointment <FaChevronRight className="ml-1 text-xs" />
+                                <FaInfoCircle className="w-3.5 h-3.5" />
+                                Profile
+                            </button>
+                            <button
+                                onClick={handleBooking}
+                                className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 rounded-md transition-colors flex items-center justify-center gap-1"
+                            >
+                                Book Now <FaChevronRight className="w-3 h-3" />
                             </button>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
+
+            {/* Add role modal */}
+            <AnimatePresence>
+                {showRoleModal && <RoleModal />}
+            </AnimatePresence>
+        </motion.div>
     );
 });
 
@@ -203,14 +328,14 @@ function HomeWithLocation() {
     useEffect(() => {
         let filtered = [...data.doctors];
 
-        // Apply specialty filter
+        // specialty filter
         if (filters.specialties.length > 0) {
             filtered = filtered.filter(doctor =>
                 filters.specialties.includes(doctor.speciality)
             );
         }
 
-        // Apply price range filter
+        // rice range filter
         const selectedRange = PRICE_RANGES.find(range => range.id === selectedPriceRange);
         if (selectedRange && selectedRange.id !== 'all') {
             filtered = filtered.filter(doctor =>
@@ -218,12 +343,11 @@ function HomeWithLocation() {
             );
         }
 
-        // Apply sorting
+        // sorting
         filtered.sort((a, b) => {
             if (sortOption === 'price') {
                 return sortOrder === 'asc' ? a.price - b.price : b.price - a.price;
             } else if (sortOption === 'distance') {
-                // Add distance sorting logic here if needed
                 return 0;
             }
             return 0;
