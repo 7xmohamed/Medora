@@ -62,15 +62,15 @@ export default function Footer() {
                             title: "Support",
                             links: [
                                 { name: "Contact Us", to: "/contact" },
-                                { name: "FAQs", to: "#" },
-                                { name: "Privacy Policy", to: "#" },
-                                { name: "Terms", to: "#" },
+                                { name: "FAQs", to: "/FAQs" },
+                                { name: "Privacy Policy", to: "/PrivacyPolicy" },
+                                { name: "Terms", to: "/Terms" },
                             ]
                         },
                         {
                             title: "Resources",
                             links: [
-                                { name: "Health Tips", to: "#" },
+                                { name: "Health Tips", to: "/HealthTips" },
                             ]
                         }
                     ].map((section, index) => (

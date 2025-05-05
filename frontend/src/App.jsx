@@ -17,6 +17,10 @@ import ScrollToTop from './components/ScrollToTop';
 import AdminRoutes from './routes/AdminRoutes';
 import ReservationPayment from './pages/patient/ReservationPayment';
 import AppointmentDetails from './pages/appointment/AppointmentDetails';
+import Faqs from './pages/medora/Faqs';
+import PrivacyPolicy from './pages/medora/PrivacyPolicy';
+import Terms from './pages/medora/Terms';
+import HealthTips from './pages/medora/HealthTips';
 
 function App() {
   return (
@@ -43,6 +47,10 @@ function App() {
               <Route path="register" element={<RegisterPage />} />
               <Route path="about" element={<AboutUs />} />
               <Route path="contact" element={<ContactUs />} />
+              <Route path='FAQs' element={<Faqs />}/>
+              <Route path='PrivacyPolicy' element={<PrivacyPolicy />}/>
+              <Route path='Terms' element={<Terms />}/>
+              <Route path='HealthTips' element={<HealthTips />}/>
               <Route path="forget-password" element={<ForgotPassword />} />
 
               {/* Role-specific routes */}

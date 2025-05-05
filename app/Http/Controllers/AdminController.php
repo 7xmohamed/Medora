@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Models\Doctor;
 use App\Models\ContactMessage;
+use App\Models\Reservation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -175,7 +176,7 @@ class AdminController extends Controller
             $stats = Reservation::selectRaw('DATE(created_at) as date')
                 ->selectRaw('COUNT(CASE WHEN reservation_status = "confirmed" THEN 1 END) as confirmed')
                 ->selectRaw('COUNT(CASE WHEN reservation_status = "pending" THEN 1 END) as pending')
-                ->selectRaw('COUNT(CASE WHEN reservation_status = "cancelled" THEN 1 END) as cancelled')
+                ->selectRaw('COUNT(CASE WHEN reservation_status = "canceled" THEN 1 END) as cancelled')
                 ->groupBy('date')
                 ->orderBy('date', 'DESC')
                 ->limit(7)

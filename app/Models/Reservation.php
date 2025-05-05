@@ -22,8 +22,8 @@ class Reservation extends Model {
         'payment_status',
         'reservation_status',
         'reason',
-        'Reservation_date',
-        'Reservation_time',
+        'reservation_date',
+        'reservation_time',
     ];
 
 
