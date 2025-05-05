@@ -92,50 +92,51 @@ export default function AvailabilityCalendar({ availabilities, onAddAvailability
 
     return (
         <div className="relative">
-            <FullCalendar
-                plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-                initialView="timeGridWeek"
-                selectable={true}
-                selectMirror={true}
-                dayMaxEvents={true}
-                weekends={true}
-                events={events}
-                select={handleDateSelect}
-                eventClick={handleEventClick}
-                headerToolbar={{
-                    left: 'prev,next today',
-                    center: 'title',
-                    right: 'timeGridWeek,timeGridDay'
-                }}
-                slotMinTime="06:00:00"
-                slotMaxTime="22:00:00"
-                height="auto"
-                contentHeight={600}
-                allDaySlot={false}
-                slotDuration="00:30:00"
-                snapDuration="00:15:00"
-                slotLabelInterval="01:00:00"
-                selectMinDistance={20}
-                selectConstraint={{
-                    startTime: '06:00:00',
-                    endTime: '22:00:00',
-                    dows: [0, 1, 2, 3, 4, 5, 6]
-                }}
-                selectOverlap={false}
-                slotEventOverlap={false}
-                eventTimeFormat={{
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    meridiem: false,
-                    hour12: false
-                }}
-                validRange={{
-                    start: new Date()
-                }}
-                nowIndicator={true}
-                className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4"
-                eventContent={renderEventContent}
-            />
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4">
+                <div className="calendar-container">
+                    <FullCalendar
+                        plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+                        initialView="timeGridWeek"
+                        selectable={true}
+                        selectMirror={true}
+                        dayMaxEvents={true}
+                        weekends={true}
+                        events={events}
+                        select={handleDateSelect}
+                        eventClick={handleEventClick}
+                        headerToolbar={{
+                            left: 'prev,next today',
+                            center: 'title',
+                            right: 'timeGridWeek,timeGridDay'
+                        }}
+                        slotMinTime="06:00:00"
+                        slotMaxTime="22:00:00"
+                        height="auto"
+                        contentHeight={600}
+                        allDaySlot={false}
+                        slotDuration="00:30:00"
+                        snapDuration="00:15:00"
+                        slotLabelInterval="01:00:00"
+                        selectConstraint={{
+                            startTime: '06:00:00',
+                            endTime: '22:00:00',
+                            dows: [0, 1, 2, 3, 4, 5, 6]
+                        }}
+                        selectOverlap={false}
+                        slotEventOverlap={false}
+                        eventTimeFormat={{
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            meridiem: false,
+                            hour12: false
+                        }}
+                        validRange={{
+                            start: new Date()
+                        }}
+                        nowIndicator={true}
+                    />
+                </div>
+            </div>
 
             <AnimatePresence>
                 {showDeleteModal && (
@@ -198,9 +199,9 @@ export default function AvailabilityCalendar({ availabilities, onAddAvailability
 
 function renderEventContent(eventInfo) {
     return (
-        <div className="p-1 text-xs">
-            <div className="font-semibold">{eventInfo.timeText}</div>
-            <div className="mt-1 opacity-75">Available</div>
+        <div className="p-1">
+            <div className="text-xs font-semibold">{eventInfo.timeText}</div>
+            <div className="text-xs">{eventInfo.event.title}</div>
         </div>
     );
 }
