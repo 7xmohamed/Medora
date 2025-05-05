@@ -1,4 +1,3 @@
-/* eslint-disable no-unused-vars */
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
@@ -230,6 +229,12 @@ export default function DoctorDashboard() {
                                                     <span className="font-medium text-emerald-600 dark:text-emerald-400">
                                                         {appointment.price} dh
                                                     </span>
+                                                <button 
+                                                    className="text-sm px-3 py-1 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 rounded-full transition-colors dark:bg-emerald-900/30 dark:hover:bg-emerald-800/50 dark:text-emerald-200"
+                                                    onClick={() => {window.location.href = `/doctor/Appointment/${appointment.id}`; }}
+                                                    >
+                                                    Details
+                                                </button>
                                                 </div>
                                             </div>
                                         </div>

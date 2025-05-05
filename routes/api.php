@@ -5,8 +5,9 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\DoctorController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\PatientController;
-use App\Http\Controllers\ReservationController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\AppointmentController;
+use App\Http\Controllers\ReservationController;
 
 // Public routes
 Route::post('/contact', [ContactController::class, 'store']);
@@ -30,6 +31,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // Protected routes ------------------
     Route::get('/user', [AuthController::class, 'user']);
     Route::post('/logout', [AuthController::class, 'logout']);
+    Route::get('/role', [AppointmentController::class, 'role']);
+    
     // -------------------------------
 
 
@@ -61,6 +64,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/availabilities', [DoctorController::class, 'getAvailabilities']);
         Route::post('/availabilities', [DoctorController::class, 'storeAvailability']);
         Route::delete('/availabilities/{id}', [DoctorController::class, 'deleteAvailability']);
+        Route::get('/getAppointments/{appointmentId}', [AppointmentController::class, 'getAppointments']);
+
     });
     // ------------------------------
 
@@ -74,6 +79,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/getDoctorReservations/{doctorId}', [ReservationController::class, 'getDoctorReservations']);
         Route::get('/getpatientreservations', [ReservationController::class, 'getPatientReservations']);
         Route::get('/reservations/{id}', [ReservationController::class, 'getReservationById']);
+        Route::get('/getAppointments/{appointmentId}', [AppointmentController::class, 'getAppointments']);
     });
 });
 

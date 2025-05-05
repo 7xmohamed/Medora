@@ -1,4 +1,3 @@
-/* eslint-disable no-unused-vars */
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
@@ -512,7 +511,11 @@ export default function PatientProfileView() {
                                                         Cancel
                                                     </button>
                                                 )}
-                                                <button className="text-sm px-3 py-1 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 rounded-full transition-colors dark:bg-emerald-900/30 dark:hover:bg-emerald-800/50 dark:text-emerald-200">
+                                                <button className="text-sm px-3 py-1 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 rounded-full transition-colors dark:bg-emerald-900/30 dark:hover:bg-emerald-800/50 dark:text-emerald-200"
+                                                onClick={() => {
+                                                    window.location.href = `/patient/Appointment/${reservation.id}`;
+                                                }}
+                                                >
                                                     Details
                                                 </button>
                                             </div>
