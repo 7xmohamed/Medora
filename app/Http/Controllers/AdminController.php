@@ -173,18 +173,69 @@ class AdminController extends Controller
     public function getReservationStats()
     {
         try {
-            $stats = Reservation::selectRaw('DATE(created_at) as date')
-                ->selectRaw('COUNT(CASE WHEN reservation_status = "confirmed" THEN 1 END) as confirmed')
-                ->selectRaw('COUNT(CASE WHEN reservation_status = "pending" THEN 1 END) as pending')
-                ->selectRaw('COUNT(CASE WHEN reservation_status = "canceled" THEN 1 END) as cancelled')
-                ->groupBy('date')
-                ->orderBy('date', 'DESC')
-                ->limit(7)
-                ->get();
+            $endDate = now();
+            $startDate = now()->subDays(30);
 
-            return response()->json(['stats' => $stats]);
+            $stats = Reservation::whereBetween('created_at', [$startDate, $endDate])
+                ->selectRaw('DATE(created_at) as date')
+                ->selectRaw('COUNT(*) as total')
+                ->selectRaw('SUM(CASE WHEN reservation_status = "confirmed" THEN 1 ELSE 0 END) as confirmed')
+                ->selectRaw('SUM(CASE WHEN reservation_status = "pending" THEN 1 ELSE 0 END) as pending')
+                ->selectRaw('SUM(CASE WHEN reservation_status = "canceled" THEN 1 ELSE 0 END) as cancelled')
+                ->groupBy('date')
+                ->orderBy('date', 'ASC')
+                ->get()
+                ->map(function($stat) {
+                    return [
+                        'date' => $stat->date,
+                        'confirmed' => (int)$stat->confirmed,
+                        'pending' => (int)$stat->pending,
+                        'cancelled' => (int)$stat->cancelled,
+                        'total' => (int)$stat->total,
+                        'confirmationRate' => $stat->total > 0 ? 
+                            round(($stat->confirmed / $stat->total) * 100, 2) : 0,
+                        'pendingRate' => $stat->total > 0 ? 
+                            round(($stat->pending / $stat->total) * 100, 2) : 0,
+                        'cancellationRate' => $stat->total > 0 ? 
+                            round(($stat->cancelled / $stat->total) * 100, 2) : 0
+                    ];
+                });
+
+            // Calculate overall statistics
+            $totals = [
+                'confirmed' => $stats->sum('confirmed'),
+                'pending' => $stats->sum('pending'),
+                'cancelled' => $stats->sum('cancelled'),
+                'total' => $stats->sum('total')
+            ];
+
+            $peakDay = $stats->sortByDesc('total')->first();
+            $bestPerformanceDay = $stats->sortByDesc('confirmationRate')->first();
+
+            return response()->json([
+                'stats' => $stats,
+                'summary' => [
+                    'totalReservations' => $totals['total'],
+                    'totalConfirmed' => $totals['confirmed'],
+                    'totalPending' => $totals['pending'],
+                    'totalCancelled' => $totals['cancelled'],
+                    'avgConfirmationRate' => $totals['total'] > 0 ? 
+                        round(($totals['confirmed'] / $totals['total']) * 100, 2) : 0,
+                    'avgCancellationRate' => $totals['total'] > 0 ? 
+                        round(($totals['cancelled'] / $totals['total']) * 100, 2) : 0,
+                    'peakDay' => [
+                        'date' => $peakDay ? $peakDay['date'] : null,
+                        'total' => $peakDay ? $peakDay['total'] : 0
+                    ],
+                    'bestPerformance' => [
+                        'date' => $bestPerformanceDay ? $bestPerformanceDay['date'] : null,
+                        'rate' => $bestPerformanceDay ? $bestPerformanceDay['confirmationRate'] : 0
+                    ]
+                ]
+            ]);
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            Log::error('Reservation stats error: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to fetch reservation statistics'], 500);
         }
     }
 
@@ -211,14 +262,59 @@ class AdminController extends Controller
     public function getMonthlyUsers()
     {
         try {
+            $endDate = now();
+            $startDate = now()->subMonths(12);
+            
             $users = User::selectRaw('DATE_FORMAT(created_at, "%Y-%m") as month')
                 ->selectRaw('COUNT(*) as count')
+                ->selectRaw('COUNT(CASE WHEN role = "doctor" THEN 1 END) as doctors')
+                ->selectRaw('COUNT(CASE WHEN role = "patient" THEN 1 END) as patients')
+                ->whereBetween('created_at', [$startDate, $endDate])
                 ->groupBy('month')
                 ->orderBy('month', 'ASC')
-                ->limit(12)
                 ->get();
 
-            return response()->json(['users' => $users]);
+            // Calculate derived metrics
+            $processedData = [];
+            $totalUsers = 0;
+            
+            foreach ($users as $index => $data) {
+                $previousCount = $index > 0 ? $processedData[$index - 1]['count'] : $data->count;
+                $growthRate = $previousCount > 0 ? 
+                    (($data->count - $previousCount) / $previousCount) * 100 : 0;
+                
+                $totalUsers += $data->count;
+                $doctorRatio = $data->count > 0 ? ($data->doctors / $data->count) * 100 : 0;
+                
+                $processedData[] = [
+                    'month' => $data->month,
+                    'count' => $data->count,
+                    'doctors' => $data->doctors,
+                    'patients' => $data->patients,
+                    'growthRate' => round($growthRate, 2),
+                    'doctorRatio' => round($doctorRatio, 2),
+                    'runningTotal' => $totalUsers
+                ];
+            }
+
+            // Calculate trends
+            $recentGrowth = array_slice($processedData, -3);
+            $growthTrend = collect($recentGrowth)->avg('growthRate');
+
+            return response()->json([
+                'users' => $processedData,
+                'summary' => [
+                    'totalUsers' => $totalUsers,
+                    'averageGrowth' => round(collect($processedData)->avg('growthRate'), 2),
+                    'latestMonthGrowth' => end($processedData)['growthRate'],
+                    'growthTrend' => round($growthTrend, 2),
+                    'doctorPatientRatio' => round(($users->sum('doctors') / $users->sum('patients')) * 100, 2),
+                    'lastThreeMonths' => [
+                        'growth' => $recentGrowth,
+                        'trend' => $growthTrend >= 0 ? 'increasing' : 'decreasing'
+                    ]
+                ]
+            ]);
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }
