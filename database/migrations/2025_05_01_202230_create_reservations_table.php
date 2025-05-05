@@ -18,6 +18,9 @@ return new class extends Migration
             $table->decimal('price', 10, 2);
             $table->enum('payment_status', ['pending', 'paid', 'failed'])->default('pending');
             $table->enum('reservation_status', ['pending', 'canceled', 'confirmed'])->default('pending');
+            $table->string('reason',255);
+            $table->date('reservation_date');
+            $table->time('reservation_time');
             $table->timestamps();
         });
     }

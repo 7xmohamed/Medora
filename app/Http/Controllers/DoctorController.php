@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Doctor;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use App\Http\Controllers\Controller;
+use Illuminate\Container\Attributes\Storage;
 
 class DoctorController extends Controller
 {
@@ -354,6 +356,37 @@ class DoctorController extends Controller
         } catch (\Exception $e) {
             return $startTime . ' - ' . $endTime;
         }
+    }
+    public function getDoctorById($doctorId)
+    {
+        $doctor = Doctor::with(['user', 'availabilities'])->findOrFail($doctorId);
+        if (!$doctor) {
+            return response()->json(['error' => 'Doctor not found'], 404);
+        }
+        return response()->json([
+            'id' => $doctor->id,
+            'name' => $doctor->user->name,
+            'email' => $doctor->user->email,
+            'address' => $doctor->user->address,
+            'phone' => $doctor->user->phone,
+            'profile_picture' => $doctor->user->profile_picture ? asset('storage/' . $doctor->user->profile_picture) : null,
+            'speciality' => $doctor->speciality,
+            'niom' => $doctor->niom,
+            'location' => $doctor->location,
+            'description' => $doctor->description,
+            'image' => $doctor->image ? asset('storage/' . $doctor->image) : null,
+            'price' => $doctor->price,
+            'languages' => $doctor->languages,
+            'experience' => $doctor->experience,
+            'education' => $doctor->education,
+            'availabilities' => $doctor->availabilities ? $doctor->availabilities->map(function($a) {
+                return [
+                    'day_of_week' => $a->day_of_week,
+                    'start_time' => $a->start_time,
+                    'end_time' => $a->end_time,
+                ];
+            })->values()->toArray() : [],
+        ]);
     }
 
 }

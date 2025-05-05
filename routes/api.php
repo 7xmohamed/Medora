@@ -5,6 +5,7 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\DoctorController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\PatientController;
+use App\Http\Controllers\ReservationController;
 use App\Http\Controllers\Api\AuthController;
 
 // Public routes
@@ -68,6 +69,11 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::prefix('patient')->middleware('role:patient')->group(function () {
         Route::get('/profile', [PatientController::class, 'getProfile']);
         Route::post('/profile/update', [PatientController::class, 'updateProfile']);
+        Route::get('/doctorsbyid/{doctorId}',[DoctorController::class, 'getDoctorById']);
+        Route::post('/reservations', [ReservationController::class, 'createReservation']);
+        Route::get('/getDoctorReservations/{doctorId}', [ReservationController::class, 'getDoctorReservations']);
+        Route::get('/getpatientreservations', [ReservationController::class, 'getPatientReservations']);
+        Route::get('/reservations/{id}', [ReservationController::class, 'getReservationById']);
     });
 });
 
