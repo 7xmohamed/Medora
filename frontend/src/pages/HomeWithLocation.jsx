@@ -1,6 +1,6 @@
 /* eslint-disable no-unused-vars */
 import { useState, useEffect, useMemo, useCallback, memo, Suspense } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { redirect, useNavigate, useParams } from 'react-router-dom';
 import Navbar from '../components/Layout/Navbar';
 import Footer from '../components/Layout/Footer';
 import { FaCalendarAlt, FaMapMarkerAlt, FaChevronRight, FaMapMarked, FaInfoCircle, FaUserMd, FaHome, FaCheckCircle, FaFilter } from 'react-icons/fa';
@@ -98,7 +98,12 @@ const DoctorCard = memo(({ doctor }) => {
                                     {formatAvailability(availabilities)}
                                 </span>
                             </div>
-                            <button className="bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 text-white px-4 py-2 rounded-md text-sm font-medium flex items-center justify-center transition-all duration-200 shadow-sm">
+                            <button
+                                className="bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 text-white px-4 py-2 rounded-md text-sm font-medium flex items-center justify-center transition-all duration-200 shadow-sm"
+                                onClick={() => {
+                                    window.location.href = `/patient/reservation/${doctor.id}`;
+                                }}
+                            >
                                 Book Appointment <FaChevronRight className="ml-1 text-xs" />
                             </button>
                         </div>

@@ -3,12 +3,10 @@
 namespace App\Http\Controllers;
 
 use Carbon\Carbon;
-// use App\Models\User; // Removed unused import
 use App\Models\Doctor;
 use App\Models\Patient;
 use App\Models\Reservation;
 use Illuminate\Http\Request;
-// use Illuminate\Support\Facades\Auth; // Removed unused import
 use Illuminate\Support\Facades\Validator;
 
 class ReservationController extends Controller
@@ -189,12 +187,7 @@ class ReservationController extends Controller
             return response()->json(['error' => 'User not authenticated'], 401);
         }
 
-        $patient = Patient::where('user_id', $user->id)->first();
-        if (!$patient) {
-            return response()->json(['error' => 'Patient not found'], 404);
-        }
-
-        $patientId = $patient->id;
+        $patientId = $user->patient->id;
 
         $reservations = Reservation::where('patient_id', $patientId)->get();
         if ($reservations->isEmpty()) {

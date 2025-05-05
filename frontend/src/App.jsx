@@ -64,8 +64,8 @@ function App() {
                 }
               />
             <Route path="patient/reservation/:doctorId" element={<ReservationPayment />} />
-            <Route path="doctor/appointment/:appoId" element={<AppointmentDetails />} />
-            <Route path="patient/appointment/:appoId" element={<AppointmentDetails />} />
+            <Route path="doctor/appointment/:appointmentId" element={<AppointmentDetails />} />
+            <Route path="patient/appointment/:appointmentId" element={<AppointmentDetails />} />
             </Route>
 
             {/* Location-based routes (outside Layout to avoid conflicts) */}

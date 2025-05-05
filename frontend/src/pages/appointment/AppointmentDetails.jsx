@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { use, useEffect, useState } from 'react';
 import { 
   FiUser, 
   FiCalendar, 
@@ -13,6 +13,8 @@ import {
   FiImage
 } from 'react-icons/fi';
 import { useParams, useNavigate } from 'react-router-dom';
+import api from '../../services/api';
+import { useAuth } from '../../contexts/AuthContext';
 
 const AppointmentDetails = () => {
   const { appointmentId } = useParams();
@@ -22,66 +24,60 @@ const AppointmentDetails = () => {
   const [notes, setNotes] = useState('');
   const [prescription, setPrescription] = useState('');
   const [activeTab, setActiveTab] = useState('details');
+  const [loading, setLoading] = useState(true);
+  const [appointmentData, setAppointmentData] = useState(null);
 
-  // Mock appointment data - replace with API call
-  const appointmentData = {
-    id: appointmentId,
-    patient: {
-      name: "Sarah Johnson",
-      age: 42,
-      gender: "Female",
-      email: "sarah.johnson@example.com",
-      phone: "(555) 123-4567",
-      photo: "https://randomuser.me/api/portraits/women/44.jpg"
-    },
-    details: {
-      date: "2023-07-15T10:00:00",
-      type: "Follow-up Consultation",
-      status: "Completed",
-      reason: "Cardiac follow-up and test results review",
-      duration: "30 minutes"
-    },
-    medicalHistory: [
-      "Hypertension (2018-present)",
-      "Type 2 Diabetes (2020-present)",
-      "Previous cardiac catheterization (2021)"
-    ],
-    labResults: [
-      {
-        id: 1,
-        name: "Complete Blood Count",
-        date: "2023-07-10",
-        file: "/reports/cbc_july2023.pdf",
-        type: "pdf"
-      },
-      {
-        id: 2,
-        name: "Electrocardiogram",
-        date: "2023-07-12",
-        file: "/reports/ecg_july2023.png",
-        type: "image"
-      },
-      {
-        id: 3,
-        name: "Cholesterol Panel",
-        date: "2023-07-12",
-        file: "/reports/cholesterol_july2023.pdf",
-        type: "pdf"
+  const [role, setRole] = useState(null);
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const response = await api.get('/role');
+        if (response.status === 200) {
+          const role = response.data.role;
+          setRole(role);
+        } else {
+          console.error("Error fetching user role:", response.statusText);
+        }
+      } catch (error) {
+        console.error("Error fetching user role:", error);
       }
-    ],
-    previousPrescriptions: [
-      "Atorvastatin 20mg - Daily",
-      "Metformin 500mg - Twice daily",
-      "Lisinopril 10mg - Daily"
-    ]
-  };
+    };
+    fetchUserData();
+  }, []);
+
+
+  useEffect(() => {
+    const fetchAppointmentData = async () => {
+      setLoading(true);
+      try {
+        let response;
+        if(role === 'doctor') {
+          response = await api.get(`/doctor/getAppointments/${appointmentId}`);
+        }else if(role === 'patient') {
+          response = await api.get(`patient/getAppointments/${appointmentId}`);
+        }
+        if (response && response.status === 200) {
+          setAppointmentData(response.data.data);
+        } else {
+          setAppointmentData(null);
+        }
+      } catch (error) {
+        setAppointmentData(null);
+        console.error("Error fetching appointment data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    if (role) {
+      fetchAppointmentData();
+    }
+  }, [appointmentId, role]);
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
       setSelectedFile(file);
-      
-      // Simulate upload progress
       let progress = 0;
       const interval = setInterval(() => {
         progress += 10;
@@ -95,8 +91,6 @@ const AppointmentDetails = () => {
 
   const handleUpload = () => {
     // Here you would typically upload to your backend
-    console.log("Uploading file:", selectedFile);
-    // Reset after upload
     setTimeout(() => {
       setSelectedFile(null);
       setUploadProgress(0);
@@ -105,15 +99,16 @@ const AppointmentDetails = () => {
 
   const handleSaveNotes = () => {
     // Save notes to backend
-    console.log("Saving notes:", notes);
+    // ...existing code...
   };
 
   const handleSavePrescription = () => {
     // Save prescription to backend
-    console.log("Saving prescription:", prescription);
+    // ...existing code...
   };
 
   const formatDate = (dateTime) => {
+    if (!dateTime) return '';
     return new Date(dateTime).toLocaleDateString('en-US', { 
       weekday: 'long', 
       month: 'long', 
@@ -123,11 +118,78 @@ const AppointmentDetails = () => {
   };
 
   const formatTime = (dateTime) => {
+    if (!dateTime) return '';
     return new Date(dateTime).toLocaleTimeString([], { 
       hour: '2-digit', 
       minute: '2-digit' 
     });
   };
+
+  if (loading) {
+    return (
+            <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500"></div>
+            </div>
+    );
+  }
+
+  if (!appointmentData) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <span className="text-lg text-gray-700 dark:text-gray-200">Appointment not found.</span>
+      </div>
+    );
+  }
+
+  // Helper for doctor info
+  const DoctorInfo = ({ data }) => (
+    <div className="flex-1">
+      <h2 className="text-xl font-bold">{data.doctor_name}</h2>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2">
+        <div>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Specialization</p>
+          <p>{data.specialization || 'N/A'}</p>
+        </div>
+        <div>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Email</p>
+          <p className="truncate">{data.doctor_email || 'N/A'}</p>
+        </div>
+        <div>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Phone</p>
+          <p>{data.doctor_phone || 'N/A'}</p>
+        </div>
+        <div>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Location</p>
+          <p>{data.location || 'N/A'}</p>
+        </div>
+      </div>
+    </div>
+  );
+
+  // Helper for patient info
+  const PatientInfo = ({ data }) => (
+    <div className="flex-1">
+      <h2 className="text-xl font-bold">{data.patient_name}</h2>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2">
+        <div>
+          <p className="text-sm text-gray-500 dark:text-gray-400">date of birth</p>
+          <p>{data.patient_age ? data.patient_age : 'N/A'}</p>
+        </div>
+        <div>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Gender</p>
+          <p>{data.patient_gender || 'N/A'}</p>
+        </div>
+        <div>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Email</p>
+          <p className="truncate">{data.patient_email || 'N/A'}</p>
+        </div>
+        <div>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Phone</p>
+          <p>{data.patient_phone || 'N/A'}</p>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
@@ -144,35 +206,24 @@ const AppointmentDetails = () => {
           <h1 className="text-2xl md:text-3xl font-bold">Appointment Details</h1>
         </div>
 
-        {/* Patient summary card */}
+        {/* Summary card: show doctor or patient info based on role */}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden mb-6">
           <div className="p-6 flex flex-col md:flex-row items-start md:items-center">
             <img 
-              src={appointmentData.patient.photo} 
-              alt={appointmentData.patient.name}
+              src={
+                role === 'doctor'
+                  ? "https://randomuser.me/api/portraits/lego/1.jpg"
+                  : "https://randomuser.me/api/portraits/lego/2.jpg"
+              }
+              alt={role === 'doctor'
+                ? appointmentData.patient_name
+                : appointmentData.doctor_name}
               className="w-16 h-16 rounded-full object-cover mb-4 md:mb-0 md:mr-6"
             />
-            <div className="flex-1">
-              <h2 className="text-xl font-bold">{appointmentData.patient.name}</h2>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2">
-                <div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Age</p>
-                  <p>{appointmentData.patient.age} years</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Gender</p>
-                  <p>{appointmentData.patient.gender}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Email</p>
-                  <p className="truncate">{appointmentData.patient.email}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Phone</p>
-                  <p>{appointmentData.patient.phone}</p>
-                </div>
-              </div>
-            </div>
+            {role === 'doctor'
+              ? <PatientInfo data={appointmentData} />
+              : <DoctorInfo data={appointmentData} />
+            }
           </div>
         </div>
 
@@ -193,13 +244,16 @@ const AppointmentDetails = () => {
               <FiFile className="inline mr-2" />
               Lab Results
             </button>
-            <button
-              onClick={() => setActiveTab('notes')}
-              className={`py-4 px-1 font-medium text-sm border-b-2 ${activeTab === 'notes' ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'}`}
-            >
-              <FiMessageSquare className="inline mr-2" />
-              Clinical Notes
-            </button>
+            {/* Only show Clinical Notes tab if NOT patient */}
+            {role !== 'patient' && (
+              <button
+                onClick={() => setActiveTab('notes')}
+                className={`py-4 px-1 font-medium text-sm border-b-2 ${activeTab === 'notes' ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'}`}
+              >
+                <FiMessageSquare className="inline mr-2" />
+                Clinical Notes
+              </button>
+            )}
           </nav>
         </div>
 
@@ -213,51 +267,49 @@ const AppointmentDetails = () => {
                   <p className="text-sm text-gray-500 dark:text-gray-400">Date</p>
                   <p className="flex items-center">
                     <FiCalendar className="mr-2 text-blue-500" />
-                    {formatDate(appointmentData.details.date)}
+                    {formatDate(appointmentData.date)}
                   </p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500 dark:text-gray-400">Time</p>
                   <p className="flex items-center">
                     <FiClock className="mr-2 text-blue-500" />
-                    {formatTime(appointmentData.details.date)}
+                    {appointmentData.time ? appointmentData.time.slice(0,5) : ''}
                   </p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500 dark:text-gray-400">Type</p>
-                  <p>{appointmentData.details.type}</p>
+                  <p>{appointmentData.specialization || 'N/A'}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500 dark:text-gray-400">Status</p>
                   <p>
                     <span className={`px-2 py-1 rounded-full text-xs ${
-                      appointmentData.details.status === 'Completed' 
+                      appointmentData.status === 'completed' || appointmentData.status === 'Completed'
                         ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' 
                         : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'
                     }`}>
-                      {appointmentData.details.status}
+                      {appointmentData.status}
                     </span>
                   </p>
                 </div>
                 <div className="md:col-span-2">
                   <p className="text-sm text-gray-500 dark:text-gray-400">Reason for Visit</p>
-                  <p>{appointmentData.details.reason}</p>
+                  <p>{appointmentData.reason || 'N/A'}</p>
                 </div>
               </div>
 
               <h3 className="text-lg font-semibold mb-4">Medical History</h3>
               <ul className="list-disc pl-5 mb-8 space-y-2">
-                {appointmentData.medicalHistory.map((item, index) => (
-                  <li key={index}>{item}</li>
-                ))}
+                {(appointmentData.medical_history && Array.isArray(appointmentData.medical_history) && appointmentData.medical_history.length > 0)
+                  ? appointmentData.medical_history.map((item, index) => (
+                      <li key={index}>{item}</li>
+                    ))
+                  : <li>No medical history found.</li>
+                }
               </ul>
 
-              <h3 className="text-lg font-semibold mb-4">Current Prescriptions</h3>
-              <ul className="list-disc pl-5 space-y-2">
-                {appointmentData.previousPrescriptions.map((item, index) => (
-                  <li key={index}>{item}</li>
-                ))}
-              </ul>
+              {/* You can add prescriptions here if available */}
             </div>
           )}
 
@@ -265,18 +317,21 @@ const AppointmentDetails = () => {
             <div className="p-6">
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-lg font-semibold">Lab Results & Reports</h3>
-                <div>
-                  <label className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg cursor-pointer">
-                    <FiUpload className="mr-2" />
-                    Upload Report
-                    <input 
-                      type="file" 
-                      className="hidden" 
-                      accept=".pdf,.png,.jpg,.jpeg"
-                      onChange={handleFileChange}
-                    />
-                  </label>
-                </div>
+                {/* Only show upload button if NOT patient */}
+                {role !== 'patient' && (
+                  <div>
+                    <label className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg cursor-pointer">
+                      <FiUpload className="mr-2" />
+                      Upload Report
+                      <input 
+                        type="file" 
+                        className="hidden" 
+                        accept=".pdf,.png,.jpg,.jpeg"
+                        onChange={handleFileChange}
+                      />
+                    </label>
+                  </div>
+                )}
               </div>
 
               {/* File upload preview */}
@@ -316,50 +371,14 @@ const AppointmentDetails = () => {
 
               {/* Lab results list */}
               <div className="space-y-4">
-                {appointmentData.labResults.map(result => (
-                  <div key={result.id} className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center">
-                        {result.type === 'pdf' ? (
-                          <FiFile className="text-red-500 mr-3" />
-                        ) : (
-                          <FiImage className="text-blue-500 mr-3" />
-                        )}
-                        <div>
-                          <h4 className="font-medium">{result.name}</h4>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">Uploaded: {result.date}</p>
-                        </div>
-                      </div>
-                      <div className="flex space-x-2">
-                        <a 
-                          href={result.file} 
-                          download
-                          className="p-2 text-gray-500 hover:text-blue-500 dark:hover:text-blue-400"
-                          title="Download"
-                        >
-                          <FiDownload />
-                        </a>
-                        <a 
-                          href={result.file} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="p-2 text-gray-500 hover:text-blue-500 dark:hover:text-blue-400"
-                          title="View"
-                        >
-                          <FiFileText />
-                        </a>
-                        <button className="p-2 text-gray-500 hover:text-blue-500 dark:hover:text-blue-400">
-                          <FiPrinter />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                {/* Placeholder: No lab results from backend */}
+                <div className="text-gray-500 dark:text-gray-400">No lab results available.</div>
               </div>
             </div>
           )}
 
-          {activeTab === 'notes' && (
+          {/* Only render Clinical Notes tab content if NOT patient */}
+          {activeTab === 'notes' && role !== 'patient' && (
             <div className="p-6">
               <h3 className="text-lg font-semibold mb-4">Clinical Notes</h3>
               <div className="mb-8">
