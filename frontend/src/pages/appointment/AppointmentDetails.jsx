@@ -1,12 +1,12 @@
-import React, { use, useEffect, useState } from 'react';
-import { 
-  FiUser, 
-  FiCalendar, 
-  FiClock, 
-  FiFileText, 
-  FiUpload, 
-  FiDownload,
-  FiPrinter,
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable no-unused-vars */
+import React, { useEffect, useState } from 'react';
+import {
+  FiUser,
+  FiCalendar,
+  FiClock,
+  FiFileText,
+  FiUpload,
   FiMessageSquare,
   FiArrowLeft,
   FiFile,
@@ -26,92 +26,137 @@ const AppointmentDetails = () => {
   const [activeTab, setActiveTab] = useState('details');
   const [loading, setLoading] = useState(true);
   const [appointmentData, setAppointmentData] = useState(null);
-
   const [role, setRole] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [roleLoading, setRoleLoading] = useState(true);
 
   useEffect(() => {
     const fetchUserData = async () => {
       try {
         const response = await api.get('/role');
         if (response.status === 200) {
-          const role = response.data.role;
-          setRole(role);
+          setRole(response.data.role);
         } else {
           console.error("Error fetching user role:", response.statusText);
         }
       } catch (error) {
         console.error("Error fetching user role:", error);
+      } finally {
+        setRoleLoading(false);
       }
     };
     fetchUserData();
   }, []);
 
+  const fetchAppointmentData = async () => {
+    setLoading(true);
+    try {
+      let response;
+      if (role === 'doctor') {
+        response = await api.get(`/doctor/getAppointments/${appointmentId}`);
+      } else if (role === 'patient') {
+        response = await api.get(`/patient/getAppointments/${appointmentId}`);
+      }
+      if (response?.status === 200) {
+        setAppointmentData(response.data.data);
+      } else {
+        setAppointmentData(null);
+      }
+    } catch (error) {
+      setAppointmentData(null);
+      console.error("Error fetching appointment data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchAppointmentData = async () => {
-      setLoading(true);
-      try {
-        let response;
-        if(role === 'doctor') {
-          response = await api.get(`/doctor/getAppointments/${appointmentId}`);
-        }else if(role === 'patient') {
-          response = await api.get(`patient/getAppointments/${appointmentId}`);
-        }
-        if (response && response.status === 200) {
-          setAppointmentData(response.data.data);
-        } else {
-          setAppointmentData(null);
-        }
-      } catch (error) {
-        setAppointmentData(null);
-        console.error("Error fetching appointment data:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
     if (role) {
       fetchAppointmentData();
     }
   }, [appointmentId, role]);
 
-  const handleFileChange = (e) => {
+  const handleFileChange = async (e) => {
     const file = e.target.files[0];
-    if (file) {
-      setSelectedFile(file);
-      let progress = 0;
-      const interval = setInterval(() => {
-        progress += 10;
-        setUploadProgress(progress);
-        if (progress >= 100) {
-          clearInterval(interval);
+    if (!file) return;
+
+    setSelectedFile(file);
+    setUploadProgress(0);
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('appointment_id', appointmentId);
+
+    try {
+      setIsSubmitting(true);
+      const response = await api.post('/upload-lab-result', formData, {
+        onUploadProgress: (progressEvent) => {
+          const progress = Math.round((progressEvent.loaded / progressEvent.total) * 100);
+          setUploadProgress(progress);
         }
-      }, 200);
+      });
+
+      if (response.status === 200) {
+        fetchAppointmentData();
+      }
+    } catch (error) {
+      console.error('Upload failed:', error);
+    } finally {
+      setIsSubmitting(false);
+      setTimeout(() => {
+        setSelectedFile(null);
+        setUploadProgress(0);
+      }, 2000);
     }
   };
 
-  const handleUpload = () => {
-    // Here you would typically upload to your backend
-    setTimeout(() => {
-      setSelectedFile(null);
-      setUploadProgress(0);
-    }, 1000);
+  const handleSaveNotes = async () => {
+    if (!notes.trim()) return;
+
+    try {
+      setIsSubmitting(true);
+      const response = await api.post('/save-clinical-notes', {
+        appointment_id: appointmentId,
+        notes: notes
+      });
+
+      if (response.status === 200) {
+        fetchAppointmentData();
+        setNotes('');
+      }
+    } catch (error) {
+      console.error('Failed to save notes:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleSaveNotes = () => {
-    // Save notes to backend
-    // ...existing code...
-  };
+  const handleSavePrescription = async () => {
+    if (!prescription.trim()) return;
 
-  const handleSavePrescription = () => {
-    // Save prescription to backend
-    // ...existing code...
+    try {
+      setIsSubmitting(true);
+      const response = await api.post('/save-prescription', {
+        appointment_id: appointmentId,
+        prescription: prescription
+      });
+
+      if (response.status === 200) {
+        fetchAppointmentData();
+        setPrescription('');
+      }
+    } catch (error) {
+      console.error('Failed to save prescription:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const formatDate = (dateTime) => {
     if (!dateTime) return '';
-    return new Date(dateTime).toLocaleDateString('en-US', { 
-      weekday: 'long', 
-      month: 'long', 
+    return new Date(dateTime).toLocaleDateString('en-US', {
+      weekday: 'long',
+      month: 'long',
       day: 'numeric',
       year: 'numeric'
     });
@@ -119,17 +164,17 @@ const AppointmentDetails = () => {
 
   const formatTime = (dateTime) => {
     if (!dateTime) return '';
-    return new Date(dateTime).toLocaleTimeString([], { 
-      hour: '2-digit', 
-      minute: '2-digit' 
+    return new Date(dateTime).toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit'
     });
   };
 
-  if (loading) {
+  if (loading || roleLoading) {
     return (
-            <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500"></div>
-            </div>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500"></div>
+      </div>
     );
   }
 
@@ -141,7 +186,6 @@ const AppointmentDetails = () => {
     );
   }
 
-  // Helper for doctor info
   const DoctorInfo = ({ data }) => (
     <div className="flex-1">
       <h2 className="text-xl font-bold">{data.doctor_name}</h2>
@@ -166,7 +210,6 @@ const AppointmentDetails = () => {
     </div>
   );
 
-  // Helper for patient info
   const PatientInfo = ({ data }) => (
     <div className="flex-1">
       <h2 className="text-xl font-bold">{data.patient_name}</h2>
@@ -194,9 +237,8 @@ const AppointmentDetails = () => {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
       <div className="max-w-6xl mx-auto px-4 py-8">
-        {/* Header with back button */}
         <div className="flex items-center mb-6">
-          <button 
+          <button
             onClick={() => navigate(-1)}
             className="flex items-center text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 mr-4"
           >
@@ -206,10 +248,9 @@ const AppointmentDetails = () => {
           <h1 className="text-2xl md:text-3xl font-bold">Appointment Details</h1>
         </div>
 
-        {/* Summary card: show doctor or patient info based on role */}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden mb-6">
           <div className="p-6 flex flex-col md:flex-row items-start md:items-center">
-            <img 
+            <img
               src={
                 role === 'doctor'
                   ? "https://randomuser.me/api/portraits/lego/1.jpg"
@@ -227,7 +268,6 @@ const AppointmentDetails = () => {
           </div>
         </div>
 
-        {/* Main content tabs */}
         <div className="mb-6 border-b border-gray-200 dark:border-gray-700">
           <nav className="flex space-x-8">
             <button
@@ -244,7 +284,6 @@ const AppointmentDetails = () => {
               <FiFile className="inline mr-2" />
               Lab Results
             </button>
-            {/* Only show Clinical Notes tab if NOT patient */}
             {role !== 'patient' && (
               <button
                 onClick={() => setActiveTab('notes')}
@@ -257,7 +296,6 @@ const AppointmentDetails = () => {
           </nav>
         </div>
 
-        {/* Tab content */}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden">
           {activeTab === 'details' && (
             <div className="p-6">
@@ -274,7 +312,7 @@ const AppointmentDetails = () => {
                   <p className="text-sm text-gray-500 dark:text-gray-400">Time</p>
                   <p className="flex items-center">
                     <FiClock className="mr-2 text-blue-500" />
-                    {appointmentData.time ? appointmentData.time.slice(0,5) : ''}
+                    {appointmentData.time ? appointmentData.time.slice(0, 5) : ''}
                   </p>
                 </div>
                 <div>
@@ -284,11 +322,10 @@ const AppointmentDetails = () => {
                 <div>
                   <p className="text-sm text-gray-500 dark:text-gray-400">Status</p>
                   <p>
-                    <span className={`px-2 py-1 rounded-full text-xs ${
-                      appointmentData.status === 'completed' || appointmentData.status === 'Completed'
-                        ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' 
+                    <span className={`px-2 py-1 rounded-full text-xs ${appointmentData.status === 'completed' || appointmentData.status === 'Completed'
+                        ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
                         : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'
-                    }`}>
+                      }`}>
                       {appointmentData.status}
                     </span>
                   </p>
@@ -303,13 +340,11 @@ const AppointmentDetails = () => {
               <ul className="list-disc pl-5 mb-8 space-y-2">
                 {(appointmentData.medical_history && Array.isArray(appointmentData.medical_history) && appointmentData.medical_history.length > 0)
                   ? appointmentData.medical_history.map((item, index) => (
-                      <li key={index}>{item}</li>
-                    ))
+                    <li key={index}>{item}</li>
+                  ))
                   : <li>No medical history found.</li>
                 }
               </ul>
-
-              {/* You can add prescriptions here if available */}
             </div>
           )}
 
@@ -317,15 +352,14 @@ const AppointmentDetails = () => {
             <div className="p-6">
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-lg font-semibold">Lab Results & Reports</h3>
-                {/* Only show upload button if NOT patient */}
                 {role !== 'patient' && (
                   <div>
                     <label className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg cursor-pointer">
                       <FiUpload className="mr-2" />
                       Upload Report
-                      <input 
-                        type="file" 
-                        className="hidden" 
+                      <input
+                        type="file"
+                        className="hidden"
                         accept=".pdf,.png,.jpg,.jpeg"
                         onChange={handleFileChange}
                       />
@@ -334,7 +368,6 @@ const AppointmentDetails = () => {
                 )}
               </div>
 
-              {/* File upload preview */}
               {selectedFile && (
                 <div className="mb-6 p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
                   <div className="flex items-center justify-between mb-2">
@@ -349,8 +382,8 @@ const AppointmentDetails = () => {
                     <span className="text-sm text-gray-500">{Math.round(selectedFile.size / 1024)} KB</span>
                   </div>
                   <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
-                    <div 
-                      className="bg-blue-600 h-2.5 rounded-full" 
+                    <div
+                      className="bg-blue-600 h-2.5 rounded-full"
                       style={{ width: `${uploadProgress}%` }}
                     ></div>
                   </div>
@@ -358,8 +391,8 @@ const AppointmentDetails = () => {
                     {uploadProgress >= 100 ? (
                       <span className="text-green-500 text-sm">Upload complete!</span>
                     ) : (
-                      <button 
-                        onClick={handleUpload}
+                      <button
+                        onClick={handleFileChange}
                         className="px-3 py-1 bg-blue-600 text-white rounded text-sm"
                       >
                         Upload
@@ -369,15 +402,12 @@ const AppointmentDetails = () => {
                 </div>
               )}
 
-              {/* Lab results list */}
               <div className="space-y-4">
-                {/* Placeholder: No lab results from backend */}
                 <div className="text-gray-500 dark:text-gray-400">No lab results available.</div>
               </div>
             </div>
           )}
 
-          {/* Only render Clinical Notes tab content if NOT patient */}
           {activeTab === 'notes' && role !== 'patient' && (
             <div className="p-6">
               <h3 className="text-lg font-semibold mb-4">Clinical Notes</h3>
@@ -394,9 +424,11 @@ const AppointmentDetails = () => {
                 <div className="flex justify-end mt-2">
                   <button
                     onClick={handleSaveNotes}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
+                    disabled={isSubmitting || !notes.trim()}
+                    className={`px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg ${isSubmitting || !notes.trim() ? 'opacity-50 cursor-not-allowed' : ''
+                      }`}
                   >
-                    Save Notes
+                    {isSubmitting ? 'Saving...' : 'Save Notes'}
                   </button>
                 </div>
               </div>
@@ -415,9 +447,11 @@ const AppointmentDetails = () => {
                 <div className="flex justify-end mt-2">
                   <button
                     onClick={handleSavePrescription}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
+                    disabled={isSubmitting || !prescription.trim()}
+                    className={`px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg ${isSubmitting || !prescription.trim() ? 'opacity-50 cursor-not-allowed' : ''
+                      }`}
                   >
-                    Save Prescription
+                    {isSubmitting ? 'Saving...' : 'Save Prescription'}
                   </button>
                 </div>
               </div>
