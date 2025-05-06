@@ -52,4 +52,6 @@ class AppointmentController extends Controller
             'role' => $user->role
         ]);
     }
+
+    
 }

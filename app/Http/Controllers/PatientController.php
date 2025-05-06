@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Reservation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Storage;
@@ -60,5 +61,29 @@ class PatientController extends Controller
                 'profile_picture' => $user->profile_picture ? asset('storage/' . $user->profile_picture) : null,
             ]
         ]);
+    }
+
+    public function analytics(Request $request)
+    {
+        $user = $request->user();
+        $reservations = Reservation::where('patient_id', $user->patient->id)->get();
+        if ($reservations->isEmpty()) {
+            return response()->json([
+                'message' => 'No reservations found for this user.'
+            ], 404);
+        }
+        $lastVisit = $reservations->sortByDesc('reservation_date')->first();
+        $lastVisitDate = $lastVisit ? $lastVisit->reservation_date : null;
+
+        $data = [
+            'totalAppointments' => $reservations->count(),
+            'upcomingAppointments' => $reservations->where('reservation_date', '>', now())->count(),
+            'canceledAppointments' => $reservations->where('reservation_status','canceled')->count(),
+            'lastCheckup' => $lastVisitDate,
+            'healthScore' => $user->patient->health_score,
+            'favoriteSpecialization'=>'Cardiology',
+        ];
+
+        return response()->json($data);
     }
 }

@@ -20,26 +20,6 @@ import {
 } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 
-// Mock data - These can be replaced with real API calls later
-const mockReservations = [
-    {
-        id: 3,
-        doctor_name: 'Dr. Emily Wilson',
-        specialization: 'Pediatrician',
-        date_time: '2023-05-20T09:15:00',
-        status: 'canceled',
-        location: 'Children\'s Center, Room 201'
-    }
-];
-
-const mockAnalytics = {
-    totalAppointments: 12,
-    upcomingAppointments: 2,
-    canceledAppointments: 3,
-    favoriteSpecialization: 'Cardiology',
-    healthScore: 85,
-    lastCheckup: '2023-05-10'
-};
 
 const containerVariants = {
     hidden: { opacity: 0 },
@@ -110,7 +90,7 @@ export default function PatientProfileView() {
                 }
 
                 if (useMockData) {
-                    setAnalytics(mockAnalytics);
+
                 } else {
                     const reservationsRes = await api.get('/patient/reservations');
                     const analyticsRes = await api.get('/patient/analytics');
@@ -137,13 +117,38 @@ export default function PatientProfileView() {
         }
         fetchReservations();
     },[])
-    console.log(reservations);
+
+    //fetch analytics
+    useEffect(() => {
+        const fetchAnalytics = async () => {
+            try {
+                const { data } = await api.get('/patient/analytics');
+                setAnalytics(data);
+            } catch (error) {
+                console.error('Error fetching analytics:', error);
+            }
+        };
+        fetchAnalytics();
+    }, []);
+    console.log(analytics);
     const handleEditChange = (e) => {
         const { name, value } = e.target;
         setEditForm(prev => ({
             ...prev,
             [name]: value
         }));
+    };
+
+    //cancel reservation
+    const cancelReservation = async (reservationId) => {
+        try {
+            await api.post(`/patient/cancelReservation/${reservationId}`);
+            setSuccessMessage('Reservation canceled successfully!');
+            setTimeout(() => setSuccessMessage(null), 5000);
+        } catch (error) {
+            setError(error.response?.data?.message || 'Failed to cancel reservation. Please try again.');
+            setTimeout(() => setError(null), 5000);
+        }
     };
 
     const handleImageChange = (e) => {
@@ -483,7 +488,8 @@ export default function PatientProfileView() {
                                     <span>My Reservations</span>
                                 </h2>
                             </div>
-                            <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                            {/* Add scrollable area */}
+                            <div className="divide-y divide-gray-200 dark:divide-gray-700 max-h-96 overflow-y-auto">
                                 {reservations.length > 0 ? (
                                     reservations.map((reservation) => (
                                         <div key={reservation.id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
@@ -507,7 +513,13 @@ export default function PatientProfileView() {
                                             </div>
                                             <div className="mt-3 flex justify-end space-x-2">
                                                 {reservation.status === 'confirmed' && (
-                                                    <button className="text-sm px-3 py-1 bg-red-100 hover:bg-red-200 text-red-800 rounded-full transition-colors dark:bg-red-900/30 dark:hover:bg-red-800/50 dark:text-red-200">
+                                                    <button className="text-sm px-3 py-1 bg-red-100 hover:bg-red-200 text-red-800 rounded-full transition-colors dark:bg-red-900/30 dark:hover:bg-red-800/50 dark:text-red-200"
+                                                        onClick={() => {
+                                                            if (window.confirm('Are you sure you want to cancel this reservation?')) {
+                                                                cancelReservation(reservation.id);
+                                                            }
+                                                        }}
+                                                    >
                                                         Cancel
                                                     </button>
                                                 )}

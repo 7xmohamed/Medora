@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import {
   FiClock, FiCheckCircle,
   FiArrowLeft, FiAlertCircle, FiMapPin,
-  FiLock, FiCopy,
+  FiLock, FiCopy, FiCreditCard
 } from 'react-icons/fi';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast, ToastContainer } from 'react-toastify';
@@ -50,16 +50,14 @@ const ReservationPayment = () => {
     <div className="mb-8">
       <div className="flex items-center justify-center">
         <div className={`flex items-center ${currentStep === 1 ? 'text-blue-600' : 'text-gray-600'}`}>
-          <div className={`rounded-full h-8 w-8 flex items-center justify-center border-2 ${currentStep === 1 ? 'border-blue-600 bg-blue-50' : 'border-gray-300'
-            }`}>
+          <div className={`rounded-full h-8 w-8 flex items-center justify-center border-2 ${currentStep === 1 ? 'border-blue-600 bg-blue-50' : 'border-gray-300'}`}>
             1
           </div>
           <span className="ml-2">Appointment</span>
         </div>
         <div className={`w-16 h-1 mx-4 ${currentStep === 2 ? 'bg-blue-600' : 'bg-gray-300'}`}></div>
         <div className={`flex items-center ${currentStep === 2 ? 'text-blue-600' : 'text-gray-600'}`}>
-          <div className={`rounded-full h-8 w-8 flex items-center justify-center border-2 ${currentStep === 2 ? 'border-blue-600 bg-blue-50' : 'border-gray-300'
-            }`}>
+          <div className={`rounded-full h-8 w-8 flex items-center justify-center border-2 ${currentStep === 2 ? 'border-blue-600 bg-blue-50' : 'border-gray-300'}`}>
             2
           </div>
           <span className="ml-2">Payment</span>
@@ -153,21 +151,16 @@ const ReservationPayment = () => {
         const [startHour, startMin] = avail.start_time.split(':').map(Number);
         const [endHour, endMin] = avail.end_time.split(':').map(Number);
 
-        // Convert to minutes for easier comparison
         const startTimeInMinutes = startHour * 60 + startMin;
         const endTimeInMinutes = endHour * 60 + endMin;
-
-        // Ensure there's at least 30 minutes available
         const lastPossibleSlotTime = endTimeInMinutes - 30;
 
         let currentTimeInMinutes = startTimeInMinutes;
 
-        // Adjust start time to nearest 30-minute interval
         if (currentTimeInMinutes % 30 !== 0) {
           currentTimeInMinutes = Math.ceil(currentTimeInMinutes / 30) * 30;
         }
 
-        // Generate slots while ensuring there's enough time for a full appointment
         while (currentTimeInMinutes <= lastPossibleSlotTime) {
           const hours = Math.floor(currentTimeInMinutes / 60);
           const minutes = currentTimeInMinutes % 60;
@@ -197,10 +190,46 @@ const ReservationPayment = () => {
     fetchBookedSlots();
   }, [reservation.date, doctorId]);
 
+  const validatePayment = (formData) => {
+    if (reservation.paymentMethod === 'credit_card' || reservation.paymentMethod === 'debit_card') {
+      const cardNumber = formData.get('cardNumber')?.replace(/\s/g, '');
+      const expiryDate = formData.get('expiryDate');
+      const cvc = formData.get('cvc');
+
+      if (!cardNumber || !/^\d{13,16}$/.test(cardNumber)) {
+        setError('Please enter a valid card number');
+        return false;
+      }
+
+      if (!expiryDate || !/^\d{2}\/\d{2}$/.test(expiryDate)) {
+        setError('Please enter a valid expiry date (MM/YY)');
+        return false;
+      }
+
+      const isAmex = /^3[47]/.test(cardNumber);
+      if (isAmex && (!cvc || !/^\d{4}$/.test(cvc))) {
+        setError('Please enter a valid 4-digit CVC for American Express');
+        return false;
+      }
+      if (!isAmex && (!cvc || !/^\d{3}$/.test(cvc))) {
+        setError('Please enter a valid 3-digit CVC');
+        return false;
+      }
+    }
+    return true;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setIsProcessing(true);
+
+    const formData = new FormData(e.target);
+    
+    if (!validatePayment(formData)) {
+      setIsProcessing(false);
+      return;
+    }
 
     try {
       if (!reservation.time.includes(':00')) {
@@ -208,17 +237,15 @@ const ReservationPayment = () => {
         return;
       }
 
-      const formData = new FormData();
-      formData.append('doctor_id', doctorId);
-      formData.append('patient_id', reservation.patient_id);
-      formData.append('reservation_date', reservation.date);
-      formData.append('reservation_time', reservation.time);
-      formData.append('reason', reservation.reason);
-      formData.append('price', doctor.price);
+      const reservationData = new FormData();
+      reservationData.append('doctor_id', doctorId);
+      reservationData.append('patient_id', reservation.patient_id);
+      reservationData.append('reservation_date', reservation.date);
+      reservationData.append('reservation_time', reservation.time);
+      reservationData.append('reason', reservation.reason);
+      reservationData.append('price', doctor.price);
 
-      console.log('Submitting time:', reservation.time);
-
-      await api.post('patient/reservations', formData, {
+      await api.post('patient/reservations', reservationData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       setPaymentSuccess(true);
@@ -282,7 +309,7 @@ const ReservationPayment = () => {
             <p className="text-sm text-gray-500 dark:text-gray-400">{reservation.reason}</p>
           </div>
           <button
-            onClick={() => navigate('/my-appointments')}
+            onClick={() => navigate('/patient/profile')}
             className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium"
           >
             View My Appointments
@@ -475,16 +502,48 @@ const ReservationPayment = () => {
                           <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
                             Card Number
                           </label>
-                          <input
-                            type="text"
-                            maxLength={19}
-                            placeholder="1234 5678 9012 3456"
-                            className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-2.5"
-                            autoComplete="off"
-                            inputMode="numeric"
-                            pattern="[0-9\s]{13,19}"
-                            disabled={isProcessing}
-                          />
+                          <div className="relative">
+                            <input
+                              type="text"
+                              name="cardNumber"
+                              maxLength={19}
+                              placeholder="1234 5678 9012 3456"
+                              className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-2.5 pl-10"
+                              autoComplete="off"
+                              inputMode="numeric"
+                              pattern="[0-9\s]{13,19}"
+                              disabled={isProcessing}
+                              onChange={(e) => {
+                                const value = e.target.value.replace(/\s/g, '');
+                                let formattedValue = '';
+                                for (let i = 0; i < value.length; i++) {
+                                  if (i > 0 && i % 4 === 0) formattedValue += ' ';
+                                  formattedValue += value[i];
+                                }
+                                e.target.value = formattedValue;
+                              }}
+                              required
+                            />
+                            <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
+                              {(() => {
+                                const cardNumber = document.querySelector('input[name="cardNumber"]')?.value.replace(/\s/g, '');
+                                if (!cardNumber) return <FiCreditCard className="h-4 w-4 text-gray-400" />;
+                                if (/^4/.test(cardNumber)) return (
+                                  <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Visa_Inc._logo.svg/2560px-Visa_Inc._logo.svg.png" 
+                                       alt="Visa" className="h-2" />
+                                );
+                                if (/^5[1-5]/.test(cardNumber)) return (
+                                  <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/Mastercard-logo.svg/1280px-Mastercard-logo.svg.png" 
+                                       alt="Mastercard" className="h-4" />
+                                );
+                                if (/^3[47]/.test(cardNumber)) return (
+                                  <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/f/fa/American_Express_logo_%282018%29.svg/1200px-American_Express_logo_%282018%29.svg.png" 
+                                       alt="Amex" className="h-4" />
+                                );
+                                return <FiCreditCard className="h-4 w-4 text-gray-400" />;
+                              })()}
+                            </div>
+                          </div>
                         </div>
                         <div className="flex gap-3">
                           <div className="flex-1">
@@ -493,6 +552,7 @@ const ReservationPayment = () => {
                             </label>
                             <input
                               type="text"
+                              name="expiryDate"
                               maxLength={5}
                               placeholder="MM/YY"
                               className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-2.5"
@@ -500,6 +560,15 @@ const ReservationPayment = () => {
                               inputMode="numeric"
                               pattern="\d{2}/\d{2}"
                               disabled={isProcessing}
+                              onChange={(e) => {
+                                const value = e.target.value.replace(/\D/g, '');
+                                if (value.length > 2) {
+                                  e.target.value = `${value.slice(0, 2)}/${value.slice(2, 4)}`;
+                                } else {
+                                  e.target.value = value;
+                                }
+                              }}
+                              required
                             />
                           </div>
                           <div className="flex-1">
@@ -508,6 +577,7 @@ const ReservationPayment = () => {
                             </label>
                             <input
                               type="text"
+                              name="cvc"
                               maxLength={4}
                               placeholder="123"
                               className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-2.5"
@@ -515,6 +585,7 @@ const ReservationPayment = () => {
                               inputMode="numeric"
                               pattern="\d{3,4}"
                               disabled={isProcessing}
+                              required
                             />
                           </div>
                         </div>

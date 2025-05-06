@@ -317,4 +317,19 @@ class ReservationController extends Controller
         ]);
     }
     
+    public function cancelReservation($reservationId)
+    {
+        $reservation = Reservation::find($reservationId);
+        if (!$reservation) {
+            return response()->json(['message' => 'Reservation not found'], 404);
+        }
+
+        $reservation->reservation_status = 'canceled';
+        $reservation->save();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Reservation canceled successfully'
+        ]);
+    }
 }

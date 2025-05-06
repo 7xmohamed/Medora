@@ -85,6 +85,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/getpatientreservations', [ReservationController::class, 'getPatientReservations']);
         Route::get('/reservations/{id}', [ReservationController::class, 'getReservationById']);
         Route::get('/getAppointments/{appointmentId}', [AppointmentController::class, 'getAppointments']);
+        Route::get('/analytics', [PatientController::class, 'analytics']);
+        Route::post('/cancelReservation/{reservationId}', [ReservationController::class, 'cancelReservation']);
     });
 });
 
