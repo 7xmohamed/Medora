@@ -34,7 +34,7 @@ const DetailsTab = ({ appointmentData }) => (
         <p className="text-sm text-gray-500 dark:text-gray-400">Time</p>
         <p className="flex items-center">
           <FiClock className="mr-2 text-blue-500" />
-          {appointmentData.time ? appointmentData.time.slice(0, 5) : ''}
+          {appointmentData.time ? appointmentData.time.slice(11, 16) : ''}
         </p>
       </div>
       <div>

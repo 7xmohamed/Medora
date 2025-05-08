@@ -65,9 +65,9 @@ const ClinicalNotesTab = ({ reservationId, role }) => {
 
     try {
       let endpoint = '';
-      if (fileType === 'doctorReport') endpoint = '/doctor-report';
-      else if (fileType === 'prescription') endpoint = '/prescription';
-      else endpoint = '/analysis-request';
+      if (fileType === 'doctorReport') endpoint = 'doctor/doctor-report';
+      else if (fileType === 'prescription') endpoint = 'doctor/prescription';
+      else endpoint = 'doctor/analysis-request';
 
       await api.post(endpoint, formData, {
         headers: {
@@ -97,9 +97,9 @@ const ClinicalNotesTab = ({ reservationId, role }) => {
   const deleteFile = async (fileType, fileId) => {
     try {
       let endpoint = '';
-      if (fileType === 'doctorReport') endpoint = `/doctor-report/${fileId}`;
-      else if (fileType === 'prescription') endpoint = `/prescription/${fileId}`;
-      else if (fileType === 'analysisRequest') endpoint = `/analysis-request/${fileId}`;
+      if (fileType === 'doctorReport') endpoint = `doctor/doctor-report/${fileId}`;
+      else if (fileType === 'prescription') endpoint = `doctor/prescription/${fileId}`;
+      else if (fileType === 'analysisRequest') endpoint = `doctor/analysis-request/${fileId}`;
       else return;
 
       await api.delete(endpoint);

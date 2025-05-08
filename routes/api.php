@@ -76,6 +76,12 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::delete('/availabilities/{id}', [DoctorController::class, 'deleteAvailability']);
         Route::get('/getAppointments/{appointmentId}', [AppointmentController::class, 'getAppointments']);
         Route::get('/appointments', [DoctorController::class, 'getAllAppointments']);
+        Route::post('/doctor-report', [ReportController::class, 'uploadDoctorReport']);
+        Route::post('/prescription', [ReportController::class, 'uploadPrescription']);
+        Route::post('/analysis-request', [ReportController::class, 'uploadAnalysisRequest']);
+        Route::delete('/doctor-report/{id}', [ReportController::class, 'deleteDoctorReport']);
+        Route::delete('/prescription/{id}', [ReportController::class, 'deletePrescription']);
+        Route::delete('/analysis-request/{id}', [ReportController::class, 'deleteAnalysisRequest']);
     });
     // ------------------------------
 
@@ -94,21 +100,18 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/analytics', [PatientController::class, 'analytics']);
         Route::post('/cancelReservation/{reservationId}', [ReservationController::class, 'cancelReservation']);
         Route::get('reservations/booked-slots/{doctorId}', [ReservationController::class, 'getBookedSlots']);
+        Route::post('/upload-lab-result', [FileController::class, 'uploadLabResult']);
+        Route::delete('/delete-lab-result/{id}', [FileController::class, 'deleteLabResult']);
+
     });
 
     // Lab Results routes
-    Route::post('/upload-lab-result', [FileController::class, 'uploadLabResult']);
     Route::post('/list-lab-results', [FileController::class, 'listLabResults']);
-    Route::delete('/delete-lab-result/{id}', [FileController::class, 'deleteLabResult']);
+
 
     // Doctor Report routes
-    Route::post('/doctor-report', [ReportController::class, 'uploadDoctorReport']);
-    Route::post('/prescription', [ReportController::class, 'uploadPrescription']);
-    Route::post('/analysis-request', [ReportController::class, 'uploadAnalysisRequest']);
     Route::get('/reservationreports/{reservationId}', [ReportController::class, 'getReservationReports']);
-    Route::delete('/doctor-report/{id}', [ReportController::class, 'deleteDoctorReport']);
-    Route::delete('/prescription/{id}', [ReportController::class, 'deletePrescription']);
-    Route::delete('/analysis-request/{id}', [ReportController::class, 'deleteAnalysisRequest']);
+
 
     Route::post('/patient/profile/picture', [PatientController::class, 'updateProfilePicture']);
 });

@@ -42,7 +42,7 @@ const LabResultsTab = ({ role, appointmentId }) => {
 
     try {
       setIsUploading(true);
-      const response = await api.post('/upload-lab-result', formData, {
+      const response = await api.post('patient/upload-lab-result', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -69,7 +69,7 @@ const LabResultsTab = ({ role, appointmentId }) => {
   const handleDelete = async (id) => {
     if (!window.confirm('Delete this file?')) return;
     try {
-      await api.delete(`/delete-lab-result/${id}`);
+      await api.delete(`patient/delete-lab-result/${id}`);
       fetchLabResults();
     } catch (e) {
       console.error('Delete failed:', e);

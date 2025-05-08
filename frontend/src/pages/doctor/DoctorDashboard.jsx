@@ -82,7 +82,7 @@ export default function DoctorDashboard() {
         fetchDashboardData();
 
         // Poll for updates more frequently
-        const interval = setInterval(fetchDashboardData, 5000); // Poll every 5 seconds
+        const interval = setInterval(fetchDashboardData, 50000); // Poll every 5 seconds
 
         return () => clearInterval(interval);
     }, []);
