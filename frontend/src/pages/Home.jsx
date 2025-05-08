@@ -1,6 +1,6 @@
 /* eslint-disable no-unused-vars */
 import { useState, Suspense, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import LocationSelector from '../components/LocationSelector';
 import { motion } from 'framer-motion';
 import ModelViewer from '../components/3D/ModelViewer';
@@ -20,12 +20,33 @@ function DelayedModelViewer() {
 export default function HomePage() {
     const [isMapOpen, setIsMapOpen] = useState(false);
     const navigate = useNavigate();
+    const location = useLocation();
     const howItWorksRef = useRef(null);
     const { darkMode } = useDarkMode();
 
     useEffect(() => {
-        localStorage.removeItem('userLocation');
-    }, []);
+        // Check for saved location on component mount
+        const savedLocation = localStorage.getItem('userLocation');
+        if (savedLocation) {
+            try {
+                const locationData = JSON.parse(savedLocation);
+                const path = `/en/${locationData.countryCode.toLowerCase()}/${locationData.city.toLowerCase()}`;
+                navigate(path);
+            } catch (error) {
+                console.error('Error parsing saved location:', error);
+                localStorage.removeItem('userLocation');
+            }
+        }
+    }, [navigate]);
+
+    useEffect(() => {
+        // Auto-open map if redirected from location change
+        if (location.state?.openMap) {
+            setIsMapOpen(true);
+            // Clean up the state
+            window.history.replaceState({}, document.title);
+        }
+    }, [location.state]);
 
     const handleLocationSelect = (location) => {
         try {

@@ -87,7 +87,6 @@ const DoctorCard = memo(({ doctor }) => {
             return;
         }
 
-        // Show role restriction modal for doctors and admins
         if (authUser.role === 'doctor' || authUser.role === 'admin') {
             setShowRoleModal(true);
             return;
@@ -154,8 +153,6 @@ const DoctorCard = memo(({ doctor }) => {
 
             <div className="p-3 sm:p-4">
                 <div className="flex items-start gap-3">
-
-                    {/* Profile Image Section */}
                     <div className="relative flex-shrink-0">
                         {user.profile_picture && !imageError ? (
                             <img
@@ -176,7 +173,6 @@ const DoctorCard = memo(({ doctor }) => {
                         )}
                     </div>
 
-                    {/* Info Section */}
                     <div className="flex-1 min-w-0">
                         <div className="flex flex-col xs:flex-row xs:items-center xs:justify-between gap-1 xs:gap-2">
                             <div className="min-w-0">
@@ -195,7 +191,6 @@ const DoctorCard = memo(({ doctor }) => {
                             </p>
                         )}
 
-                        {/* Location and Availability */}
                         <div className="mt-3 space-y-2">
                             {location && (
                                 <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
@@ -211,7 +206,6 @@ const DoctorCard = memo(({ doctor }) => {
                             </div>
                         </div>
 
-                        {/* Action Buttons */}
                         <div className="mt-4 flex justify-end gap-2">
                             <button
                                 onClick={handleProfileClick}
@@ -231,7 +225,6 @@ const DoctorCard = memo(({ doctor }) => {
                 </div>
             </div>
 
-            {/* Add role modal */}
             <AnimatePresence>
                 {showRoleModal && <RoleModal />}
             </AnimatePresence>
@@ -328,14 +321,12 @@ function HomeWithLocation() {
     useEffect(() => {
         let filtered = [...data.doctors];
 
-        // specialty filter
         if (filters.specialties.length > 0) {
             filtered = filtered.filter(doctor =>
                 filters.specialties.includes(doctor.speciality)
             );
         }
 
-        // rice range filter
         const selectedRange = PRICE_RANGES.find(range => range.id === selectedPriceRange);
         if (selectedRange && selectedRange.id !== 'all') {
             filtered = filtered.filter(doctor =>
@@ -343,7 +334,6 @@ function HomeWithLocation() {
             );
         }
 
-        // sorting
         filtered.sort((a, b) => {
             if (sortOption === 'price') {
                 return sortOrder === 'asc' ? a.price - b.price : b.price - a.price;
@@ -385,6 +375,11 @@ function HomeWithLocation() {
         }
     }, []);
 
+    const handleChangeLocation = () => {
+        localStorage.removeItem('userLocation');
+        navigate('/', { state: { openMap: true } });
+    };
+
     if (loading) {
         return (
             <div className="min-h-screen flex items-center justify-center pt-20 bg-gray-50 dark:bg-gray-900">
@@ -404,6 +399,16 @@ function HomeWithLocation() {
 
             <main className="flex-grow py-6 pt-24">
                 <div className="max-w-6xl mx-auto px-4">
+                    <div className="mb-6 flex justify-end">
+                        <button
+                            onClick={handleChangeLocation}
+                            className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-colors"
+                        >
+                            <FaMapMarkerAlt className="mr-2 h-4 w-4 text-emerald-500" />
+                            Choose Another Location
+                        </button>
+                    </div>
+
                     {data.isFallback && (
                         <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg flex items-start">
                             <FaInfoCircle className="text-blue-500 dark:text-blue-400 mt-1 mr-3 flex-shrink-0" />
@@ -457,7 +462,6 @@ function HomeWithLocation() {
 
                             <div className="flex flex-col md:flex-row gap-6">
                                 <AnimatePresence>
-                                    {/* Mobile Filter Drawer */}
                                     {showMobileFilters && (
                                         <>
                                             <motion.div
@@ -489,7 +493,6 @@ function HomeWithLocation() {
                                                     </div>
                                                 </div>
                                                 <div className="p-4">
-                                                    {/* Price Range Section */}
                                                     <div className="space-y-4 mb-8">
                                                         <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
                                                             Price Range
@@ -520,7 +523,6 @@ function HomeWithLocation() {
                                                         </div>
                                                     </div>
 
-                                                    {/* Specialties Section */}
                                                     {allSpecialties.length > 0 && (
                                                         <div className="space-y-4">
                                                             <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -554,7 +556,6 @@ function HomeWithLocation() {
                                     )}
                                 </AnimatePresence>
 
-                                {/* Desktop Filters */}
                                 <motion.div
                                     initial={{ opacity: 0, y: 20 }}
                                     animate={{ opacity: 1, y: 0 }}
@@ -580,7 +581,6 @@ function HomeWithLocation() {
                                             )}
                                         </div>
 
-                                        {/* Price Range Section */}
                                         <div className="space-y-4 mb-8">
                                             <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
                                                 Price Range
@@ -611,7 +611,6 @@ function HomeWithLocation() {
                                             </div>
                                         </div>
 
-                                        {/* Specialties Section */}
                                         {allSpecialties.length > 0 && (
                                             <div className="space-y-4">
                                                 <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -642,7 +641,6 @@ function HomeWithLocation() {
                                     </div>
                                 </motion.div>
 
-                                {/* Doctor Cards */}
                                 <motion.div
                                     initial={{ opacity: 0 }}
                                     animate={{ opacity: 1 }}
@@ -674,13 +672,6 @@ function HomeWithLocation() {
                                 We couldn't find any verified doctors in this location.
                             </p>
                             <div className="mt-6 flex justify-center gap-4">
-                                <button
-                                    onClick={() => navigate('/')}
-                                    className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md shadow-sm text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500"
-                                >
-                                    <FaHome className="mr-2" />
-                                    Back to Home
-                                </button>
                                 <button
                                     onClick={resetFilters}
                                     className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500"
