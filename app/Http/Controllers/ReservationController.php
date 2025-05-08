@@ -159,37 +159,31 @@ class ReservationController extends Controller
                 ], 400);
             }
 
+            // Check for existing reservations at the same time
+            $existingReservation = Reservation::where('doctor_id', $request->doctor_id)
+                ->whereDate('reservation_date', $request->reservation_date)
+                ->whereTime('reservation_time', $request->reservation_time)
+                ->whereIn('reservation_status', ['pending', 'confirmed'])
+                ->first();
+
+            if ($existingReservation) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'This time slot has already been booked'
+                ], 409);
+            }
+
             // Check if patient already has a reservation at the same time
             $existingPatientReservation = Reservation::where('patient_id', $patient->id)
                 ->whereDate('reservation_date', $request->reservation_date)
                 ->whereTime('reservation_time', $request->reservation_time)
-                ->whereIn('reservation_status', ['confirmed', 'pending_payment'])
+                ->whereIn('reservation_status', ['pending', 'confirmed'])
                 ->first();
 
             if ($existingPatientReservation) {
                 return response()->json([
                     'status' => 'error',
                     'message' => 'You already have a reservation at this time'
-                ], 409);
-            }
-
-            // Check for existing reservations
-            $existingReservation = Reservation::where('doctor_id', $request->doctor_id)
-                ->whereDate('reservation_date', $request->reservation_date)
-                ->whereTime('reservation_time', $request->reservation_time)
-                ->whereIn('reservation_status', ['confirmed', 'pending_payment'])
-                ->first();
-
-            if ($existingReservation) {
-                $nextSlot = $this->findNextAvailableSlot($doctor, $requestDateTime->copy()->startOfDay(), $requestDateTime);
-                
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'This time slot is already taken',
-                    'next_available' => $nextSlot ? [
-                        'date' => $nextSlot->format('Y-m-d'),
-                        'time' => $nextSlot->format('H:i:s')
-                    ] : null
                 ], 409);
             }
 
@@ -445,17 +439,22 @@ class ReservationController extends Controller
                 ], 400);
             }
 
+            // Get only reserved slots (pending or confirmed)
             $bookedSlots = Reservation::where('doctor_id', $doctorId)
                 ->whereDate('reservation_date', $request->date)
-                ->whereIn('reservation_status', ['pending', 'confirmed']) // Update status check
-                ->pluck('reservation_time')
-                ->toArray();
+                ->whereIn('reservation_status', ['pending', 'confirmed'])
+                ->get(['reservation_time', 'reservation_status'])
+                ->map(function($reservation) {
+                    return [
+                        'time' => $reservation->reservation_time,
+                        'status' => $reservation->reservation_status
+                    ];
+                });
 
             return response()->json([
                 'status' => 'success',
                 'data' => $bookedSlots
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',

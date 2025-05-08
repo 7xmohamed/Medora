@@ -80,17 +80,29 @@ export default function DoctorDashboard() {
         };
 
         fetchDashboardData();
-
-        // Poll for updates more frequently
-        const interval = setInterval(fetchDashboardData, 5000); // Poll every 5 seconds
-
-        return () => clearInterval(interval);
     }, []);
+
+    useEffect(() => {
+        const loadAvailabilities = async () => {
+            try {
+                const response = await api.get('/doctor/availabilities');
+                if (response.data.success) {
+                    setAvailabilities(response.data.availabilities);
+                }
+            } catch (err) {
+                setError('Failed to fetch availabilities');
+            }
+        };
+
+        loadAvailabilities();
+    }, []); // Run once on mount
 
     const fetchAvailabilities = async () => {
         try {
             const response = await api.get('/doctor/availabilities');
-            setAvailabilities(response.data.availabilities);
+            if (response.data.success) {
+                setAvailabilities(response.data.availabilities);
+            }
         } catch (err) {
             setError('Failed to fetch availabilities');
         }
@@ -101,13 +113,8 @@ export default function DoctorDashboard() {
             await api.delete(`/doctor/availabilities/${id}`, {
                 params: { delete_all: deleteAll }
             });
-
-            if (deleteAll) {
-                const targetDay = availabilities.find(a => a.id === id)?.day_of_week;
-                setAvailabilities(availabilities.filter(a => a.day_of_week !== targetDay));
-            } else {
-                setAvailabilities(availabilities.filter(a => a.id !== id));
-            }
+            // Refresh availabilities after deletion
+            await fetchAvailabilities();
         } catch (err) {
             setError('Failed to delete availability');
         }
@@ -116,7 +123,10 @@ export default function DoctorDashboard() {
     const handleAddAvailability = async (data) => {
         try {
             const response = await api.post('/doctor/availabilities', data);
-            setAvailabilities([...availabilities, response.data.availability]);
+            if (response.data.success) {
+                // Refresh availabilities after addition
+                await fetchAvailabilities();
+            }
         } catch (err) {
             setError('Failed to add availability');
         }

@@ -30,6 +30,7 @@ const ReservationPayment = () => {
   const [paymentSuccess, setPaymentSuccess] = useState(false);
   const [error, setError] = useState('');
   const [bookedSlots, setBookedSlots] = useState([]);
+  const [bookedSlotsData, setBookedSlotsData] = useState([]);
   const [currentStep, setCurrentStep] = useState(1);
 
   const goToNextStep = () => {
@@ -87,20 +88,29 @@ const ReservationPayment = () => {
     const today = new Date();
     const selectedDate = new Date(reservation.date);
 
-    if (selectedDate.getDate() > today.getDate()) return false;
+    // If date is in the future, slot is not past
+    if (selectedDate.getDate() > today.getDate() ||
+      selectedDate.getMonth() > today.getMonth() ||
+      selectedDate.getFullYear() > today.getFullYear()) {
+      return false;
+    }
 
-    if (selectedDate.getDate() === today.getDate()) {
+    // If same day, check if time has passed
+    if (selectedDate.getDate() === today.getDate() &&
+      selectedDate.getMonth() === today.getMonth() &&
+      selectedDate.getFullYear() === today.getFullYear()) {
       const [hours, minutes] = timeStr.split(':').map(Number);
       const slotTime = new Date();
       slotTime.setHours(hours, minutes, 0);
 
+      // Add 30 minutes buffer for booking
       const currentTime = new Date();
       currentTime.setMinutes(currentTime.getMinutes() + 30);
 
       return slotTime < currentTime;
     }
 
-    return false;
+    return true; // Past date
   };
 
   useEffect(() => {
@@ -189,9 +199,9 @@ const ReservationPayment = () => {
           params: { date: reservation.date }
         });
         if (response.data.status === 'success') {
-          setBookedSlots(response.data.data || []);
-        } else {
-          console.error('Failed to fetch booked slots:', response.data.message);
+          const bookedSlotsData = response.data.data || [];
+          setBookedSlotsData(bookedSlotsData);
+          setBookedSlots(bookedSlotsData.map(slot => slot.time));
         }
       } catch (err) {
         console.error('Failed to fetch booked slots:', err);
@@ -230,19 +240,28 @@ const ReservationPayment = () => {
     return true;
   };
 
+  const handleReservationSuccess = (reservationTime) => {
+    setBookedSlotsData(prev => [...prev, { time: reservationTime, status: 'pending' }]);
+    setBookedSlots(prev => [...prev, reservationTime]);
+    setPaymentSuccess(true);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setIsProcessing(true);
 
     try {
-      // Ensure time is in HH:mm:ss format and validate 30-minute interval
       const [hours, minutes] = reservation.time.split(':').map(Number);
       if (minutes % 30 !== 0) {
         throw new Error('Please select a valid 30-minute time slot');
       }
 
       const reservationTime = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:00`;
+
+      if (bookedSlots.includes(reservationTime)) {
+        throw new Error('This time slot has just been booked. Please select another time.');
+      }
 
       const reservationData = {
         doctor_id: doctorId,
@@ -255,7 +274,7 @@ const ReservationPayment = () => {
       const response = await api.post('/patient/reservations', reservationData);
 
       if (response.data.status === 'success') {
-        setPaymentSuccess(true);
+        handleReservationSuccess(reservationTime);
       } else {
         throw new Error(response.data.message || 'Failed to create reservation');
       }
@@ -418,39 +437,48 @@ const ReservationPayment = () => {
                           {availableSlots.map((slot) => {
                             const timeWithSeconds = `${slot}:00`;
                             const isBooked = bookedSlots.includes(timeWithSeconds);
-                            const isPast = isTimeSlotPast(slot);
-                            const isDisabled = isBooked || isPast;
+                            const bookedSlotData = bookedSlotsData.find(bs => bs.time === timeWithSeconds);
 
                             return (
                               <button
                                 key={slot}
                                 type="button"
-                                onClick={() => !isDisabled && handleChange('time', slot)}
-                                disabled={isDisabled}
-                                className={`relative py-2 px-3 rounded-lg border text-sm ${isDisabled
-                                  ? 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed dark:border-gray-700 dark:bg-gray-800/50 dark:text-gray-600'
-                                  : reservation.time === timeWithSeconds
-                                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
-                                    : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
-                                  }`}
-                                title={
-                                  isBooked
-                                    ? "This time slot is already booked"
-                                    : isPast
-                                      ? "This time slot has passed"
-                                      : "Available slot"
-                                }
+                                onClick={() => !isBooked && handleChange('time', slot)}
+                                disabled={isBooked}
+                                className={`
+                                        relative flex flex-col items-center justify-center
+                                        py-3 px-4 rounded-lg border text-sm
+                                        transition-all duration-200
+                                        ${isBooked
+                                    ? 'cursor-not-allowed border-gray-300 bg-gray-100 dark:border-gray-600 dark:bg-gray-800'
+                                    : reservation.time === timeWithSeconds
+                                      ? 'border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400'
+                                      : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50 dark:border-gray-700 dark:hover:border-gray-600 dark:hover:bg-gray-700'
+                                  }
+                                    `}
                               >
-                                <div className="flex items-center justify-center gap-2">
-                                  {formatTime(slot)}
-                                  {isDisabled && (
-                                    <div className="flex items-center text-gray-400 dark:text-gray-600">
-                                      <FiLock size={12} />
+                                <div className="relative z-10 flex flex-col items-center">
+                                  <span className={`mb-1 ${isBooked ? 'text-gray-400 dark:text-gray-500' : 'text-gray-900 dark:text-white'}`}>
+                                    {formatTime(slot)}
+                                  </span>
+
+                                  {isBooked && (
+                                    <div className="flex items-center space-x-1">
+                                      <FiLock className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                                      <span className="text-xs font-medium text-gray-400 dark:text-gray-500">
+                                        {bookedSlotData?.status === 'confirmed' ? "Booked" : "Pending"}
+                                      </span>
                                     </div>
                                   )}
                                 </div>
-                                {isDisabled && (
-                                  <div className="absolute inset-0 bg-gray-50 dark:bg-gray-800/50 rounded-lg opacity-50"></div>
+
+                                {isBooked && (
+                                  <div
+                                    className={`
+                                                absolute inset-0 rounded-lg
+                                                bg-gray-100/90 dark:bg-gray-800/90 backdrop-blur-[1px]'
+                                            `}
+                                  ></div>
                                 )}
                               </button>
                             );
