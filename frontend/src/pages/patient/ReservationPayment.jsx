@@ -144,36 +144,42 @@ const ReservationPayment = () => {
     const selectedDay = new Date(reservation.date).getDay();
     const dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][selectedDay];
 
-    const slots = doctor.availabilities
-      .filter(avail => avail.day_of_week === dayName)
-      .flatMap(avail => {
-        const times = [];
-        const [startHour, startMin] = avail.start_time.split(':').map(Number);
-        const [endHour, endMin] = avail.end_time.split(':').map(Number);
+    // Find availability for the selected day
+    const availability = doctor.availabilities.find(
+      avail => avail.day_of_week.toLowerCase() === dayName.toLowerCase()
+    );
 
-        const startTimeInMinutes = startHour * 60 + startMin;
-        const endTimeInMinutes = endHour * 60 + endMin;
-        const lastPossibleSlotTime = endTimeInMinutes - 30;
-
-        let currentTimeInMinutes = startTimeInMinutes;
-
-        if (currentTimeInMinutes % 30 !== 0) {
-          currentTimeInMinutes = Math.ceil(currentTimeInMinutes / 30) * 30;
-        }
-
-        while (currentTimeInMinutes <= lastPossibleSlotTime) {
-          const hours = Math.floor(currentTimeInMinutes / 60);
-          const minutes = currentTimeInMinutes % 60;
-          const timeStr = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
-          times.push(timeStr);
-          currentTimeInMinutes += 30;
-        }
-
-        return times;
-      });
-
-    setAvailableSlots(slots);
+    if (availability) {
+      const slots = generateTimeSlots(availability.start_time, availability.end_time);
+      setAvailableSlots(slots);
+    } else {
+      setAvailableSlots([]);
+    }
   }, [reservation.date, doctor]);
+
+  const generateTimeSlots = (startTime, endTime) => {
+    const slots = [];
+    const start = new Date(`2000/01/01 ${startTime}`);
+    const end = new Date(`2000/01/01 ${endTime}`);
+
+    // Ensure we round to the nearest 30 minutes for the start time
+    const roundedStart = new Date(start);
+    roundedStart.setMinutes(Math.ceil(start.getMinutes() / 30) * 30);
+
+    // End time should be 30 minutes before actual end
+    const lastSlot = new Date(end);
+    lastSlot.setMinutes(end.getMinutes() - 30);
+
+    let current = roundedStart;
+    while (current <= lastSlot) {
+      // Format time as HH:mm
+      const timeStr = `${String(current.getHours()).padStart(2, '0')}:${String(current.getMinutes()).padStart(2, '0')}`;
+      slots.push(timeStr);
+      current = new Date(current.getTime() + 30 * 60000);
+    }
+
+    return slots;
+  };
 
   useEffect(() => {
     const fetchBookedSlots = async () => {
@@ -182,9 +188,14 @@ const ReservationPayment = () => {
         const response = await api.get(`/patient/reservations/booked-slots/${doctorId}`, {
           params: { date: reservation.date }
         });
-        setBookedSlots(response.data.data || []);
+        if (response.data.status === 'success') {
+          setBookedSlots(response.data.data || []);
+        } else {
+          console.error('Failed to fetch booked slots:', response.data.message);
+        }
       } catch (err) {
         console.error('Failed to fetch booked slots:', err);
+        setError('Failed to check availability. Please try again.');
       }
     };
     fetchBookedSlots();
@@ -224,34 +235,40 @@ const ReservationPayment = () => {
     setError('');
     setIsProcessing(true);
 
-    const formData = new FormData(e.target);
-    
-    if (!validatePayment(formData)) {
-      setIsProcessing(false);
-      return;
-    }
-
     try {
-      if (!reservation.time.includes(':00')) {
-        setError('Invalid time format');
-        return;
+      // Ensure time is in HH:mm:ss format and validate 30-minute interval
+      const [hours, minutes] = reservation.time.split(':').map(Number);
+      if (minutes % 30 !== 0) {
+        throw new Error('Please select a valid 30-minute time slot');
       }
 
-      const reservationData = new FormData();
-      reservationData.append('doctor_id', doctorId);
-      reservationData.append('patient_id', reservation.patient_id);
-      reservationData.append('reservation_date', reservation.date);
-      reservationData.append('reservation_time', reservation.time);
-      reservationData.append('reason', reservation.reason);
-      reservationData.append('price', doctor.price);
+      const reservationTime = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:00`;
 
-      await api.post('patient/reservations', reservationData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
-      setPaymentSuccess(true);
+      const reservationData = {
+        doctor_id: doctorId,
+        reservation_date: reservation.date,
+        reservation_time: reservationTime,
+        reason: reservation.reason,
+        price: doctor.price
+      };
+
+      const response = await api.post('/patient/reservations', reservationData);
+
+      if (response.data.status === 'success') {
+        setPaymentSuccess(true);
+      } else {
+        throw new Error(response.data.message || 'Failed to create reservation');
+      }
     } catch (err) {
-      console.error('Reservation error:', err.response?.data);
-      setError(err.response?.data?.message || 'Reservation failed.');
+      console.error('Reservation error:', err);
+      let errorMessage = err.response?.data?.message || err.message || 'Failed to create reservation. Please try again.';
+
+      setError(errorMessage);
+      toast.error(errorMessage, {
+        position: "top-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+      });
     } finally {
       setIsProcessing(false);
     }
@@ -293,10 +310,11 @@ const ReservationPayment = () => {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 max-w-md w-full text-center">
-          <FiCheckCircle className="mx-auto h-16 w-16 text-green-500 mb-4" />
-          <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">Appointment Confirmed!</h2>
+          <FiCheckCircle className="mx-auto h-16 w-16 text-emerald-500 mb-4" />
+          <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">Reservation Created!</h2>
           <p className="text-gray-600 dark:text-gray-300 mb-6">
-            Your appointment with Dr. {doctor.name} has been successfully booked.
+            Your appointment with Dr. {doctor.name} is pending confirmation.
+            It will be automatically confirmed 30 minutes before the scheduled time.
           </p>
           <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-4 mb-6 text-left">
             <p className="font-medium">
@@ -307,10 +325,14 @@ const ReservationPayment = () => {
               })}
             </p>
             <p className="text-sm text-gray-500 dark:text-gray-400">{reservation.reason}</p>
+            <div className="mt-2 inline-flex items-center px-3 py-1 rounded-full text-sm bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300">
+              <FiClock className="mr-1.5 h-4 w-4" />
+              Pending Confirmation
+            </div>
           </div>
           <button
             onClick={() => navigate('/patient/profile')}
-            className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium"
+            className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium"
           >
             View My Appointments
           </button>
@@ -472,126 +494,33 @@ const ReservationPayment = () => {
             <div className="lg:col-span-2">
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden">
                 <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                  <h3 className="text-lg font-semibold">Payment Information</h3>
+                  <h3 className="text-lg font-semibold">Confirm Reservation</h3>
                 </div>
                 <div className="p-6">
-                  <div className="flex justify-between items-center mb-6">
-                    <span className="text-gray-600 dark:text-gray-300">Consultation Fee</span>
-                    <span className="text-xl font-bold">${doctor.price}</span>
+                  {/* Reservation Summary */}
+                  <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                    <h4 className="text-lg font-medium mb-4">Reservation Summary</h4>
+                    <div className="space-y-3">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600 dark:text-gray-300">Doctor:</span>
+                        <span className="font-medium">Dr. {doctor.user?.name || doctor.name}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600 dark:text-gray-300">Date:</span>
+                        <span className="font-medium">{new Date(reservation.date).toLocaleDateString()}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600 dark:text-gray-300">Time:</span>
+                        <span className="font-medium">{formatTime(reservation.time)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600 dark:text-gray-300">Consultation Fee:</span>
+                        <span className="font-medium text-lg">${doctor.price}</span>
+                      </div>
+                    </div>
                   </div>
 
                   <form onSubmit={handleSubmit}>
-                    <div className="mb-4">
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Payment Method
-                      </label>
-                      <select
-                        value={reservation.paymentMethod}
-                        onChange={(e) => handleChange('paymentMethod', e.target.value)}
-                        className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-2.5"
-                      >
-                        <option value="credit_card">Credit Card</option>
-                        <option value="debit_card">Debit Card</option>
-                        <option value="paypal">PayPal</option>
-                      </select>
-                    </div>
-
-                    {(reservation.paymentMethod === 'credit_card' || reservation.paymentMethod === 'debit_card') && (
-                      <div className="mb-4">
-                        <div className="mb-3">
-                          <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
-                            Card Number
-                          </label>
-                          <div className="relative">
-                            <input
-                              type="text"
-                              name="cardNumber"
-                              maxLength={19}
-                              placeholder="1234 5678 9012 3456"
-                              className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-2.5 pl-10"
-                              autoComplete="off"
-                              inputMode="numeric"
-                              pattern="[0-9\s]{13,19}"
-                              disabled={isProcessing}
-                              onChange={(e) => {
-                                const value = e.target.value.replace(/\s/g, '');
-                                let formattedValue = '';
-                                for (let i = 0; i < value.length; i++) {
-                                  if (i > 0 && i % 4 === 0) formattedValue += ' ';
-                                  formattedValue += value[i];
-                                }
-                                e.target.value = formattedValue;
-                              }}
-                              required
-                            />
-                            <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
-                              {(() => {
-                                const cardNumber = document.querySelector('input[name="cardNumber"]')?.value.replace(/\s/g, '');
-                                if (!cardNumber) return <FiCreditCard className="h-4 w-4 text-gray-400" />;
-                                if (/^4/.test(cardNumber)) return (
-                                  <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Visa_Inc._logo.svg/2560px-Visa_Inc._logo.svg.png" 
-                                       alt="Visa" className="h-2" />
-                                );
-                                if (/^5[1-5]/.test(cardNumber)) return (
-                                  <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/Mastercard-logo.svg/1280px-Mastercard-logo.svg.png" 
-                                       alt="Mastercard" className="h-4" />
-                                );
-                                if (/^3[47]/.test(cardNumber)) return (
-                                  <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/f/fa/American_Express_logo_%282018%29.svg/1200px-American_Express_logo_%282018%29.svg.png" 
-                                       alt="Amex" className="h-4" />
-                                );
-                                return <FiCreditCard className="h-4 w-4 text-gray-400" />;
-                              })()}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex gap-3">
-                          <div className="flex-1">
-                            <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
-                              Expiry Date
-                            </label>
-                            <input
-                              type="text"
-                              name="expiryDate"
-                              maxLength={5}
-                              placeholder="MM/YY"
-                              className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-2.5"
-                              autoComplete="off"
-                              inputMode="numeric"
-                              pattern="\d{2}/\d{2}"
-                              disabled={isProcessing}
-                              onChange={(e) => {
-                                const value = e.target.value.replace(/\D/g, '');
-                                if (value.length > 2) {
-                                  e.target.value = `${value.slice(0, 2)}/${value.slice(2, 4)}`;
-                                } else {
-                                  e.target.value = value;
-                                }
-                              }}
-                              required
-                            />
-                          </div>
-                          <div className="flex-1">
-                            <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
-                              CVC
-                            </label>
-                            <input
-                              type="text"
-                              name="cvc"
-                              maxLength={4}
-                              placeholder="123"
-                              className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-2.5"
-                              autoComplete="off"
-                              inputMode="numeric"
-                              pattern="\d{3,4}"
-                              disabled={isProcessing}
-                              required
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
                     {error && (
                       <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg flex items-start">
                         <FiAlertCircle className="h-5 w-5 text-red-500 dark:text-red-400 mt-0.5 mr-2" />
@@ -601,22 +530,19 @@ const ReservationPayment = () => {
 
                     <button
                       type="submit"
-                      disabled={!reservation.date || !reservation.time || !reservation.reason || isProcessing}
-                      className={`w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium ${(!reservation.date || !reservation.time || !reservation.reason || isProcessing)
-                        ? 'opacity-70 cursor-not-allowed'
-                        : ''
-                        }`}
+                      disabled={isProcessing}
+                      className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium disabled:opacity-70"
                     >
                       {isProcessing ? (
-                        <>
-                          <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <div className="flex items-center justify-center">
+                          <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                           </svg>
                           Processing...
-                        </>
+                        </div>
                       ) : (
-                        `Pay $${doctor.price} & Confirm Appointment`
+                        `Confirm & Pay $${doctor.price}`
                       )}
                     </button>
                   </form>

@@ -13,10 +13,13 @@ return new class extends Migration
     {
         Schema::create('doctors', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->foreignId('user_id')->constrained();
             $table->string('speciality')->nullable();
-            $table->string('niom')->nullable(); // numéro d'inscription à l'Ordre des Médecins            
-            $table->string('location')->nullable(); // Make location nullable
+            $table->string('niom')->nullable();
+            $table->string('location')->nullable();
+            $table->string('location_searchable')->nullable();
+            $table->string('city')->nullable();
+            $table->string('city_searchable')->nullable();
             $table->decimal('latitude', 10, 8)->nullable();
             $table->decimal('longitude', 11, 8)->nullable();
             $table->text('description')->nullable();
@@ -25,7 +28,8 @@ return new class extends Migration
             $table->string('experience')->nullable();
             $table->string('education')->nullable();
             $table->decimal('price', 10, 2)->nullable();
-            $table->string('city')->nullable();
+            $table->decimal('total_revenue', 10, 2)->default(0)->change();
+            $table->decimal('monthly_revenue', 10, 2)->default(0)->change();
             $table->boolean('is_verified')->default(false);
             $table->timestamps();
         });

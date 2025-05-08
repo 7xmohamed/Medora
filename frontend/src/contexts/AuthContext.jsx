@@ -1,7 +1,9 @@
+/* eslint-disable no-unused-vars */
 /* eslint-disable react-hooks/exhaustive-deps */
 import { createContext, useState, useContext, useEffect } from 'react';
 import api from '../services/api';
 import axios from '../services/api';
+import { handleApiError } from '../utils/errorHandler';
 
 const AuthContext = createContext({});
 
@@ -19,12 +21,11 @@ export function AuthProvider({ children }) {
 
     const initializeAuth = async () => {
         try {
-            // Set CSRF cookie first
             await api.get('/sanctum/csrf-cookie');
-            // Then check authentication
             await checkAuth();
         } catch (error) {
-            console.error('Failed to initialize auth:', error);
+            setError('Unable to initialize authentication. Please check your internet connection and try again.');
+            setLoading(false);
         }
     };
 
@@ -39,7 +40,10 @@ export function AuthProvider({ children }) {
             setUser(response.data);
             setError(null);
         } catch (error) {
-            setError(error.response?.data?.message || 'Authentication failed');
+            const errorMessage = error.response?.status === 401
+                ? 'Your session has expired. Please login again.'
+                : 'Authentication check failed. Please try logging in again.';
+            setError(errorMessage);
             localStorage.removeItem('token');
         } finally {
             setLoading(false);
@@ -52,7 +56,6 @@ export function AuthProvider({ children }) {
             if (!token) return;
             const response = await api.post('/refresh-token');
             localStorage.setItem('token', response.data.token);
-            // eslint-disable-next-line no-unused-vars
         } catch (error) {
             logout();
         }
@@ -66,8 +69,12 @@ export function AuthProvider({ children }) {
             setError(null);
             return response.data;
         } catch (error) {
-            setError(error.response?.data?.message || 'Login failed');
-            throw error;
+            const { message, fields } = handleApiError(error, 'Login failed');
+            setError(message);
+            if (fields) {
+                throw { message, fields };
+            }
+            throw new Error(message);
         }
     };
 
@@ -80,17 +87,21 @@ export function AuthProvider({ children }) {
                 },
             };
 
-            const response = await axios.post('/register', formData, config);
-
+            const response = await api.post('/register', formData, config);
             if (response.data.user && response.data.token) {
                 setUser(response.data.user);
                 localStorage.setItem('token', response.data.token);
-                axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
+                api.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
+                setError(null);
             }
             return response.data;
         } catch (error) {
-            console.error('Registration error:', error.response?.data || error);
-            throw error.response?.data || error;
+            const { message, fields } = handleApiError(error, 'Registration failed');
+            setError(message);
+            if (fields) {
+                throw { message, fields };
+            }
+            throw new Error(message);
         }
     };
 
@@ -109,13 +120,32 @@ export function AuthProvider({ children }) {
     const logout = async () => {
         try {
             await api.post('/logout');
+            setError(null);
         } catch (error) {
-            console.error('Logout error:', error);
+            setError('Unable to logout properly. Your local session has been cleared.');
         } finally {
             localStorage.removeItem('token');
+            delete axios.defaults.headers.common['Authorization'];
             setUser(null);
-            setError(null);
         }
+    };
+
+    // Helper function to get error messages
+    const getErrorMessage = (error) => {
+        if (error.status === 422) {
+            if (error.details?.errors) {
+                // Get first validation error message
+                const firstError = Object.values(error.details.errors)[0];
+                return Array.isArray(firstError) ? firstError[0] : firstError;
+            }
+            return 'Please check your input and try again.';
+        }
+
+        if (error.status === 429) {
+            return 'Too many attempts. Please try again later.';
+        }
+
+        return error.message || 'An unexpected error occurred. Please try again.';
     };
 
     return (

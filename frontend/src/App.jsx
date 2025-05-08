@@ -22,6 +22,8 @@ import PrivacyPolicy from './pages/medora/PrivacyPolicy';
 import Terms from './pages/medora/Terms';
 import HealthTips from './pages/medora/HealthTips';
 import DoctorPublicProfile from './pages/doctor/DoctorPublicProfile';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 function App() {
   return (
@@ -87,6 +89,18 @@ function App() {
             {/* Catch-all for unmatched routes */}
             <Route path="*" element={<Navigate to="/404" replace />} />
           </Routes>
+          <ToastContainer
+            position="top-right"
+            autoClose={3000}
+            hideProgressBar={false}
+            newestOnTop
+            closeOnClick
+            rtl={false}
+            pauseOnFocusLoss
+            draggable
+            pauseOnHover
+            theme="colored"
+          />
         </BrowserRouter>
       </DarkModeProvider>
     </AuthProvider>

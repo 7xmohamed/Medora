@@ -134,6 +134,7 @@ class DoctorController extends Controller
                 ->where('user_id', auth()->id())
                 ->firstOrFail();
 
+            // Calculate statistics
             $stats = [
                 'today_appointments' => $doctor->reservations()
                     ->whereDate('created_at', today())
@@ -151,34 +152,101 @@ class DoctorController extends Controller
                 'pending_appointments' => $doctor->reservations()
                     ->where('reservation_status', 'pending')
                     ->count(),
+                // New statistics
+                'weekly_appointments' => $doctor->reservations()
+                    ->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()])
+                    ->count(),
+                'monthly_revenue' => $doctor->reservations()
+                    ->where('payment_status', 'paid')
+                    ->whereMonth('created_at', now()->month)
+                    ->sum('price'),
+                'completion_rate' => $doctor->reservations()
+                    ->where('reservation_status', 'completed')
+                    ->count() / max($doctor->reservations()->count(), 1) * 100,
+                'average_rating' => 4.5, // Implement actual rating calculation
+                'total_reviews' => 150, // Implement actual reviews count
             ];
 
-            $todayAppointments = $doctor->reservations()
+            // Get upcoming appointments for the next 7 days
+            $upcomingAppointments = $doctor->reservations()
                 ->with('patient.user')
-                ->whereDate('created_at', today())
+                ->whereBetween('created_at', [now(), now()->addDays(7)])
                 ->orderBy('created_at', 'asc')
                 ->get()
                 ->map(function($reservation) {
                     return [
                         'id' => $reservation->id,
                         'patient_name' => $reservation->patient->user->name,
+                        'date' => $reservation->created_at->format('Y-m-d'),
                         'time' => $reservation->created_at->format('h:i A'),
                         'status' => $reservation->reservation_status,
-                        'reason' => 'Medical Consultation',
+                        'type' => $reservation->appointment_type ?? 'Consultation',
                         'patient_id' => $reservation->patient_id,
-                        'price' => $reservation->price
+                        'price' => $reservation->price,
+                        'is_new_patient' => !$reservation->patient->reservations()
+                            ->where('created_at', '<', $reservation->created_at)
+                            ->exists()
                     ];
                 });
+
+            // Get today's appointments
+            $todayAppointments = $upcomingAppointments
+                ->where('date', now()->format('Y-m-d'))
+                ->values();
+
+            // Get past appointments
+            $pastAppointments = $doctor->reservations()
+                ->with('patient.user')
+                ->where('created_at', '<', now())
+                ->orderBy('created_at', 'desc')
+                ->limit(10)
+                ->get()
+                ->map(function($reservation) {
+                    return [
+                        'id' => $reservation->id,
+                        'patient_name' => $reservation->patient->user->name,
+                        'date' => $reservation->created_at->format('Y-m-d'),
+                        'time' => $reservation->created_at->format('h:i A'),
+                        'status' => $reservation->reservation_status,
+                        'type' => $reservation->appointment_type ?? 'Consultation',
+                        'patient_id' => $reservation->patient_id,
+                        'price' => $reservation->price,
+                    ];
+                });
+
+            // Get recent patients
+            $recentPatients = $doctor->reservations()
+                ->with('patient.user')
+                ->orderBy('created_at', 'desc')
+                ->limit(5)
+                ->get()
+                ->map(function($reservation) {
+                    return [
+                        'id' => $reservation->patient_id,
+                        'name' => $reservation->patient->user->name,
+                        'last_visit' => $reservation->created_at->format('Y-m-d'),
+                        'total_visits' => $reservation->patient->reservations()->count(),
+                        'status' => $reservation->reservation_status
+                    ];
+                })
+                ->unique('id')
+                ->values();
 
             return response()->json([
                 'success' => true,
                 'stats' => $stats,
                 'today_appointments' => $todayAppointments,
+                'upcoming_appointments' => $upcomingAppointments,
+                'past_appointments' => $pastAppointments,
+                'recent_patients' => $recentPatients,
                 'doctor' => [
                     'name' => $doctor->user->name,
                     'profile_picture' => $doctor->user->profile_picture ? 
                         asset('storage/' . $doctor->user->profile_picture) : 
-                        null
+                        null,
+                    'speciality' => $doctor->speciality,
+                    'experience' => $doctor->experience,
+                    'total_patients_served' => $doctor->reservations()->distinct('patient_id')->count()
                 ]
             ]);
         } catch (\Exception $e) {
@@ -187,6 +255,41 @@ class DoctorController extends Controller
                 'trace' => $e->getTraceAsString()
             ]);
             return response()->json(['error' => 'Failed to load dashboard data'], 500);
+        }
+    }
+
+    public function getDashboardData()
+    {
+        try {
+            $doctor = auth()->user()->doctor;
+            $today = now();
+
+            // Update monthly revenue at the start of each month
+            if ($today->day === 1 && $today->hour === 0) {
+                $doctor->update(['monthly_revenue' => 0]);
+            }
+
+            // Calculate revenues
+            $monthlyRevenue = $doctor->reservations()
+                ->where('payment_status', 'paid')
+                ->whereMonth('created_at', $today->month)
+                ->whereYear('created_at', $today->year)
+                ->where('reservation_status', '!=', 'canceled')
+                ->sum('price');
+
+            $doctor->update([
+                'monthly_revenue' => $monthlyRevenue
+            ]);
+
+            $stats = [
+                // ...existing code...
+                'monthly_revenue' => $monthlyRevenue,
+                // ...existing code...
+            ];
+
+            // ...existing code...
+        } catch (\Exception $e) {
+            // ...existing code...
         }
     }
 
@@ -270,6 +373,43 @@ class DoctorController extends Controller
                 'trace' => $e->getTraceAsString()
             ]);
             return response()->json(['error' => 'Failed to update profile picture'], 500);
+        }
+    }
+
+    public function updateProfile(Request $request)
+    {
+        try {
+            $request->validate([
+                'description' => 'nullable|string',
+                'price' => 'required|numeric|min:0',
+                'phone' => 'required|string'
+            ]);
+
+            $doctor = Doctor::where('user_id', auth()->id())->firstOrFail();
+            
+            // Update doctor info
+            $doctor->description = $request->description;
+            $doctor->price = $request->price;
+            $doctor->save();
+
+            // Update user phone
+            $doctor->user->phone = $request->phone;
+            $doctor->user->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Profile updated successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error updating doctor profile:', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to update profile'
+            ], 500);
         }
     }
 
@@ -426,6 +566,45 @@ class DoctorController extends Controller
             ]);
         } catch (\Exception $e) {
             return response()->json(['error' => 'Doctor not found'], 404);
+        }
+    }
+
+    public function getAllAppointments(Request $request)
+    {
+        try {
+            $doctor = Doctor::with(['reservations.patient.user'])
+                ->where('user_id', auth()->id())
+                ->firstOrFail();
+
+            $appointments = $doctor->reservations()
+                ->orderBy('created_at', 'desc')
+                ->get()
+                ->map(function($reservation) {
+                    return [
+                        'id' => $reservation->id,
+                        'patient_name' => $reservation->patient->user->name,
+                        'patient_email' => $reservation->patient->user->email,
+                        'patient_phone' => $reservation->patient->user->phone,
+                        'date' => $reservation->created_at->format('Y-m-d'),
+                        'time' => $reservation->created_at->format('h:i A'),
+                        'status' => $reservation->reservation_status,
+                        'type' => $reservation->appointment_type ?? 'Consultation',
+                        'price' => $reservation->price,
+                        'reason' => $reservation->reason,
+                        'medical_history' => $reservation->patient->medical_history
+                    ];
+                });
+
+            return response()->json([
+                'success' => true,
+                'appointments' => $appointments
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error fetching appointments:', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json(['error' => 'Failed to fetch appointments'], 500);
         }
     }
 }

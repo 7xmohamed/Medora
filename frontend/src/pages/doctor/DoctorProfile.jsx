@@ -1,5 +1,5 @@
 /* eslint-disable no-unused-vars */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Fragment } from 'react';
 import {
     FaUserMd, FaMapMarkerAlt, FaPhone, FaEnvelope,
     FaSpinner, FaUserTie, FaCheckCircle,
@@ -7,6 +7,7 @@ import {
     FaCalendarAlt, FaRegClock, FaIdCard,
     FaUniversity, FaBriefcaseMedical, FaGlobe
 } from 'react-icons/fa';
+import { Dialog, Transition } from '@headlessui/react';
 import api from '../../services/api';
 import { toast } from 'react-toastify';
 import { motion } from 'framer-motion';
@@ -16,6 +17,12 @@ const DoctorProfileDashboard = () => {
     const [loading, setLoading] = useState(true);
     const [uploading, setUploading] = useState(false);
     const [activeTab, setActiveTab] = useState('profile');
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [editForm, setEditForm] = useState({
+        description: '',
+        price: '',
+        phone: ''
+    });
 
     useEffect(() => {
         const fetchDoctorProfile = async () => {
@@ -49,9 +56,57 @@ const DoctorProfileDashboard = () => {
         fetchDoctorProfile();
     }, []);
 
+    useEffect(() => {
+        if (doctor) {
+            setEditForm({
+                description: doctor.description || '',
+                price: doctor.consultationFee || '',
+                phone: doctor.phone || ''
+            });
+        }
+    }, [doctor]);
+
     const handleProfilePictureUpload = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
+
+        // File size validation (2MB)
+        if (file.size > 2 * 1024 * 1024) {
+            toast.error('Image size should be less than 2MB', {
+                position: "top-right",
+                icon: "⚠️",
+                style: {
+                    borderRadius: '10px',
+                    background: '#333',
+                    color: '#fff',
+                },
+            });
+            return;
+        }
+
+        // File type validation
+        const validTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+        if (!validTypes.includes(file.type)) {
+            toast.error('Please upload a valid image file (JPEG, PNG)', {
+                position: "top-right",
+                icon: "⚠️",
+                style: {
+                    borderRadius: '10px',
+                    background: '#333',
+                    color: '#fff',
+                },
+            });
+            return;
+        }
+
+        const toastId = toast.loading('Updating your profile picture...', {
+            position: "top-right",
+            style: {
+                borderRadius: '10px',
+                background: '#333',
+                color: '#fff',
+            },
+        });
 
         try {
             setUploading(true);
@@ -61,6 +116,12 @@ const DoctorProfileDashboard = () => {
             const response = await api.post('/doctor/profile/picture', formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data'
+                },
+                onUploadProgress: (progressEvent) => {
+                    const progress = (progressEvent.loaded / progressEvent.total) * 100;
+                    toast.update(toastId, {
+                        render: `Uploading... ${Math.round(progress)}%`,
+                    });
                 }
             });
 
@@ -69,13 +130,78 @@ const DoctorProfileDashboard = () => {
                 profilePicture: response.data.profile_picture
             }));
 
-            toast.success('Profile picture updated successfully');
+            toast.update(toastId, {
+                render: "Profile picture updated successfully!",
+                type: "success",
+                isLoading: false,
+                icon: "✅",
+                autoClose: 3000,
+                closeButton: true,
+                style: {
+                    borderRadius: '10px',
+                    background: '#333',
+                    color: '#fff',
+                },
+            });
+
         } catch (err) {
             console.error('Error uploading profile picture:', err);
-            toast.error('Failed to update profile picture');
+            toast.update(toastId, {
+                render: err.response?.data?.error || "Failed to update profile picture",
+                type: "error",
+                isLoading: false,
+                icon: "❌",
+                autoClose: 3000,
+                closeButton: true,
+                style: {
+                    borderRadius: '10px',
+                    background: '#333',
+                    color: '#fff',
+                },
+            });
         } finally {
             setUploading(false);
             e.target.value = '';
+        }
+    };
+
+    const handleEditSubmit = async (e) => {
+        e.preventDefault();
+        const loadingToast = toast.loading('Updating profile...');
+
+        try {
+            const response = await api.post('/doctor/profile/update', {
+                description: editForm.description,
+                price: parseFloat(editForm.price),
+                phone: editForm.phone
+            });
+
+            if (response.data.success) {
+                setDoctor(prev => ({
+                    ...prev,
+                    description: editForm.description,
+                    consultationFee: parseFloat(editForm.price),
+                    phone: editForm.phone
+                }));
+
+                toast.update(loadingToast, {
+                    render: 'Profile updated successfully!',
+                    type: 'success',
+                    isLoading: false,
+                    autoClose: 3000
+                });
+                setIsEditModalOpen(false);
+            } else {
+                throw new Error(response.data.error || 'Failed to update profile');
+            }
+        } catch (err) {
+            console.error('Error updating profile:', err);
+            toast.update(loadingToast, {
+                render: err.response?.data?.error || 'Failed to update profile',
+                type: 'error',
+                isLoading: false,
+                autoClose: 3000
+            });
         }
     };
 
@@ -138,25 +264,6 @@ const DoctorProfileDashboard = () => {
 
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-            <motion.header
-                initial="hidden"
-                animate="visible"
-                variants={containerVariants}
-                className="bg-white dark:bg-gray-800 shadow-sm"
-            >
-                <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8 flex justify-between items-center">
-                    <motion.h1 variants={itemVariants} className="text-2xl font-bold text-gray-900 dark:text-white">
-                        My Profile
-                    </motion.h1>
-                    <motion.button
-                        variants={itemVariants}
-                        className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow-md font-medium transition-colors"
-                    >
-                        <FaEdit /> Edit Profile
-                    </motion.button>
-                </div>
-            </motion.header>
-
             <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 <motion.div
                     initial="hidden"
@@ -247,8 +354,14 @@ const DoctorProfileDashboard = () => {
                                 variants={itemVariants}
                                 className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden border border-gray-200 dark:border-gray-700"
                             >
-                                <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+                                <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
                                     <h2 className="text-xl font-bold text-gray-800 dark:text-white">Personal Information</h2>
+                                    <button
+                                        onClick={() => setIsEditModalOpen(true)}
+                                        className="p-2 text-gray-600 hover:text-emerald-500 dark:text-gray-400 dark:hover:text-emerald-400 transition-colors"
+                                    >
+                                        <FaEdit className="w-5 h-5" />
+                                    </button>
                                 </div>
                                 <div className="p-6">
                                     <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
@@ -292,6 +405,101 @@ const DoctorProfileDashboard = () => {
                                         </div>
                                     </div>
                                 </div>
+
+                                {/* Edit Profile Modal */}
+                                <Transition appear show={isEditModalOpen} as={Fragment}>
+                                    <Dialog
+                                        as="div"
+                                        className="relative z-50"
+                                        onClose={() => setIsEditModalOpen(false)}
+                                    >
+                                        <Transition.Child
+                                            as={Fragment}
+                                            enter="ease-out duration-300"
+                                            enterFrom="opacity-0"
+                                            enterTo="opacity-100"
+                                            leave="ease-in duration-200"
+                                            leaveFrom="opacity-100"
+                                            leaveTo="opacity-0"
+                                        >
+                                            <div className="fixed inset-0 bg-black/75" />
+                                        </Transition.Child>
+
+                                        <div className="fixed inset-0 overflow-y-auto">
+                                            <div className="flex min-h-full items-center justify-center p-4 text-center">
+                                                <Transition.Child
+                                                    as={Fragment}
+                                                    enter="ease-out duration-300"
+                                                    enterFrom="opacity-0 scale-95"
+                                                    enterTo="opacity-100 scale-100"
+                                                    leave="ease-in duration-200"
+                                                    leaveFrom="opacity-100 scale-100"
+                                                    leaveTo="opacity-0 scale-95"
+                                                >
+                                                    <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white dark:bg-gray-800 p-6 text-left align-middle shadow-xl transition-all">
+                                                        <Dialog.Title as="h3" className="text-lg font-medium leading-6 text-gray-900 dark:text-white">
+                                                            Edit Profile
+                                                        </Dialog.Title>
+
+                                                        <form onSubmit={handleEditSubmit} className="mt-4 space-y-4">
+                                                            <div>
+                                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                                                    About Me
+                                                                </label>
+                                                                <textarea
+                                                                    value={editForm.description}
+                                                                    onChange={(e) => setEditForm(prev => ({ ...prev, description: e.target.value }))}
+                                                                    rows={4}
+                                                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 dark:bg-gray-700 dark:border-gray-600"
+                                                                />
+                                                            </div>
+
+                                                            <div>
+                                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                                                    Consultation Fee (dh)
+                                                                </label>
+                                                                <input
+                                                                    type="number"
+                                                                    value={editForm.price}
+                                                                    onChange={(e) => setEditForm(prev => ({ ...prev, price: e.target.value }))}
+                                                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 dark:bg-gray-700 dark:border-gray-600"
+                                                                />
+                                                            </div>
+
+                                                            <div>
+                                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                                                    Phone
+                                                                </label>
+                                                                <input
+                                                                    type="tel"
+                                                                    value={editForm.phone}
+                                                                    onChange={(e) => setEditForm(prev => ({ ...prev, phone: e.target.value }))}
+                                                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 dark:bg-gray-700 dark:border-gray-600"
+                                                                />
+                                                            </div>
+
+                                                            <div className="mt-6 flex justify-end space-x-3">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setIsEditModalOpen(false)}
+                                                                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 rounded-md"
+                                                                >
+                                                                    Cancel
+                                                                </button>
+                                                                <button
+                                                                    type="submit"
+                                                                    className="px-4 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-md"
+                                                                >
+                                                                    Save Changes
+                                                                </button>
+                                                            </div>
+                                                        </form>
+                                                    </Dialog.Panel>
+                                                </Transition.Child>
+                                            </div>
+                                        </div>
+                                    </Dialog>
+                                </Transition>
                             </motion.div>
                         )}
 

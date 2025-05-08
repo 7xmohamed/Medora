@@ -27,10 +27,7 @@ export default function LoginPage() {
         try {
             await login(formData);
         } catch (err) {
-            setError(
-                err.response?.data?.message ||
-                'The credentials you entered are incorrect. Please try again.'
-            );
+            setError(err.message || 'Unable to login. Please try again later.');
         } finally {
             setIsLoading(false);
         }

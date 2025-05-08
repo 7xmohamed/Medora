@@ -12,45 +12,28 @@ use App\Traits\HasStorageFiles;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasApiTokens, HasFactory, Notifiable, SoftDeletes, HasStorageFiles;
 
     const ROLE_ADMIN = 'admin';
     const ROLE_DOCTOR = 'doctor';
     const ROLE_PATIENT = 'patient';
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
     protected $fillable = [
         'name',
         'email',
         'password',
         'role',
-        'address',
         'phone',
+        'address',
         'profile_picture',
-        'id_card_front',
-        'id_card_back',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var array<int, string>
-     */
+
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
-    /**
-     * The attributes that should be cast.
-     *
-     * @var array<string, string>
-     */
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',

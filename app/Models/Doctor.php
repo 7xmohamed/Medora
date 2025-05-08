@@ -24,6 +24,8 @@ class Doctor extends Model
         'experience',
         'education',
         'city',
+        'total_revenue',
+        'monthly_revenue',
         'is_verified'
     ];
 
@@ -32,6 +34,8 @@ class Doctor extends Model
         'latitude' => 'float',
         'longitude' => 'float',
         'price' => 'float',
+        'total_revenue' => 'float',
+        'monthly_revenue' => 'float',
     ];
 
     protected $appends = [

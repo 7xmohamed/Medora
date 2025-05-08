@@ -1,0 +1,67 @@
+.calendar-container .fc {
+    --fc-border-color: theme('colors.gray.200');
+    --fc-today-bg-color: theme('colors.emerald.50');
+    --fc-highlight-color: theme('colors.emerald.100');
+    --fc-non-business-color: theme('colors.gray.100');
+    --fc-event-bg-color: theme('colors.emerald.500');
+    --fc-event-border-color: theme('colors.emerald.600');
+    --fc-event-text-color: theme('colors.white');
+    --fc-page-bg-color: transparent;
+}
+
+.dark .calendar-container .fc {
+    --fc-border-color: theme('colors.gray.700');
+    --fc-today-bg-color: theme('colors.emerald.900/30');
+    --fc-highlight-color: theme('colors.emerald.900/50');
+    --fc-non-business-color: theme('colors.gray.800/50');
+    --fc-event-bg-color: theme('colors.emerald.600');
+    --fc-event-border-color: theme('colors.emerald.700');
+    --fc-event-text-color: theme('colors.white');
+}
+
+.calendar-container .fc .fc-timegrid-slot {
+    height: 48px !important;
+}
+
+.calendar-container .fc .fc-timegrid-slot-label {
+    vertical-align: middle;
+}
+
+.calendar-container .fc .fc-event {
+    border-radius: 6px;
+    border: none;
+    padding: 2px;
+}
+
+.calendar-container .fc .fc-toolbar-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.calendar-container .fc .fc-button {
+    border-radius: 8px;
+    padding: 0.5rem 1rem;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.calendar-container .fc .fc-button:focus {
+    box-shadow: none;
+    outline: 2px solid theme('colors.emerald.500');
+    outline-offset: 2px;
+}
+
+.calendar-container .fc .fc-button-primary {
+    background-color: theme('colors.emerald.500');
+    border-color: theme('colors.emerald.600');
+}
+
+.calendar-container .fc .fc-button-primary:hover {
+    background-color: theme('colors.emerald.600');
+    border-color: theme('colors.emerald.700');
+}
+
+.calendar-container .fc .fc-button-primary:disabled {
+    background-color: theme('colors.emerald.400');
+    border-color: theme('colors.emerald.500');
+}
