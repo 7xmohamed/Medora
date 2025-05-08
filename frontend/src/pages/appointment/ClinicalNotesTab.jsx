@@ -154,78 +154,83 @@ const ClinicalNotesTab = ({ reservationId, role }) => {
       {/* Doctor Report Tab */}
       {activeTab === 'doctorReport' && (
         <div>
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Report Text
-            </label>
-            <textarea
-              value={doctorReportText}
-              onChange={(e) => setDoctorReportText(e.target.value)}
-              className="w-full h-32 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-              placeholder="Enter doctor's report..."
-            />
-          </div>
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Upload Report File
-            </label>
-            <label className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg cursor-pointer transition-colors">
-              <FiUpload className="mr-2" />
-              {files.doctorReport ? 'Change File' : 'Select File'}
-              <input
-                type="file"
-                className="hidden"
-                accept=".pdf,.png,.jpg,.jpeg"
-                onChange={(e) => handleFileChange('doctorReport', e)}
-                disabled={isUploading}
-              />
-            </label>
-            <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-              Supported formats: PDF, PNG, JPG (Max 5MB)
-            </p>
-            {files.doctorReport && (
-              <div className="mt-4 p-3 border border-gray-200 dark:border-gray-700 rounded-lg">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    {getFileIcon(files.doctorReport.type)}
-                    <span className="ml-2 truncate max-w-xs dark:text-white">
-                      {files.doctorReport.name}
-                    </span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
-                      {(files.doctorReport.size / 1024).toFixed(1)} KB
-                    </span>
-                  </div>
-                  <button
-                    onClick={() => removeFile('doctorReport')}
-                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-                  >
-                    <FiX size={18} />
-                  </button>
-                </div>
-                {isUploading && (
-                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mt-2">
-                    <div
-                      className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-                      style={{ width: `${uploadProgress}%` }}
-                    ></div>
+          {/* Only show upload section if not patient */}
+          {role !== 'patient' && (
+            <>
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Report Text
+                </label>
+                <textarea
+                  value={doctorReportText}
+                  onChange={(e) => setDoctorReportText(e.target.value)}
+                  className="w-full h-32 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                  placeholder="Enter doctor's report..."
+                />
+              </div>
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Upload Report File
+                </label>
+                <label className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg cursor-pointer transition-colors">
+                  <FiUpload className="mr-2" />
+                  {files.doctorReport ? 'Change File' : 'Select File'}
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept=".pdf,.png,.jpg,.jpeg"
+                    onChange={(e) => handleFileChange('doctorReport', e)}
+                    disabled={isUploading}
+                  />
+                </label>
+                <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                  Supported formats: PDF, PNG, JPG (Max 5MB)
+                </p>
+                {files.doctorReport && (
+                  <div className="mt-4 p-3 border border-gray-200 dark:border-gray-700 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center">
+                        {getFileIcon(files.doctorReport.type)}
+                        <span className="ml-2 truncate max-w-xs dark:text-white">
+                          {files.doctorReport.name}
+                        </span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
+                          {(files.doctorReport.size / 1024).toFixed(1)} KB
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => removeFile('doctorReport')}
+                        className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                      >
+                        <FiX size={18} />
+                      </button>
+                    </div>
+                    {isUploading && (
+                      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mt-2">
+                        <div
+                          className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                          style={{ width: `${uploadProgress}%` }}
+                        ></div>
+                      </div>
+                    )}
+                    <div className="flex justify-end mt-3">
+                      <button
+                        onClick={() => uploadFile('doctorReport')}
+                        disabled={isUploading}
+                        className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                          isUploading
+                            ? 'bg-gray-200 text-gray-500 dark:bg-gray-600 dark:text-gray-400 cursor-not-allowed'
+                            : 'bg-blue-600 text-white hover:bg-blue-700'
+                        }`}
+                      >
+                        {isUploading ? 'Uploading...' : 'Upload Report'}
+                      </button>
+                    </div>
                   </div>
                 )}
-                <div className="flex justify-end mt-3">
-                  <button
-                    onClick={() => uploadFile('doctorReport')}
-                    disabled={isUploading}
-                    className={`px-3 py-1 text-sm rounded-md transition-colors ${
-                      isUploading
-                        ? 'bg-gray-200 text-gray-500 dark:bg-gray-600 dark:text-gray-400 cursor-not-allowed'
-                        : 'bg-blue-600 text-white hover:bg-blue-700'
-                    }`}
-                  >
-                    {isUploading ? 'Uploading...' : 'Upload Report'}
-                  </button>
-                </div>
               </div>
-            )}
-          </div>
+            </>
+          )}
           {/* Existing Reports */}
           {reports.doctor_reports.length > 0 && (
             <div className="mt-8">
@@ -255,13 +260,16 @@ const ClinicalNotesTab = ({ reservationId, role }) => {
                       >
                         <FiFileText className="mr-1" /> View
                       </a>
-                      <button
-                        onClick={() => deleteFile('doctorReport', report.id)}
-                        className="text-red-500 hover:text-red-700 transition-colors"
-                        title="Delete"
-                      >
-                        <FiTrash2 />
-                      </button>
+                      {/* Only show delete for non-patient */}
+                      {role !== 'patient' && (
+                        <button
+                          onClick={() => deleteFile('doctorReport', report.id)}
+                          className="text-red-500 hover:text-red-700 transition-colors"
+                          title="Delete"
+                        >
+                          <FiTrash2 />
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -274,78 +282,83 @@ const ClinicalNotesTab = ({ reservationId, role }) => {
       {/* Prescription Tab */}
       {activeTab === 'prescription' && (
         <div>
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Prescription Details
-            </label>
-            <textarea
-              value={prescriptionText}
-              onChange={(e) => setPrescriptionText(e.target.value)}
-              className="w-full h-32 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-              placeholder="Enter prescription details..."
-            />
-          </div>
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Upload Prescription File
-            </label>
-            <label className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg cursor-pointer transition-colors">
-              <FiUpload className="mr-2" />
-              {files.prescription ? 'Change File' : 'Select File'}
-              <input
-                type="file"
-                className="hidden"
-                accept=".pdf,.png,.jpg,.jpeg"
-                onChange={(e) => handleFileChange('prescription', e)}
-                disabled={isUploading}
-              />
-            </label>
-            <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-              Supported formats: PDF, PNG, JPG (Max 5MB)
-            </p>
-            {files.prescription && (
-              <div className="mt-4 p-3 border border-gray-200 dark:border-gray-700 rounded-lg">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    {getFileIcon(files.prescription.type)}
-                    <span className="ml-2 truncate max-w-xs dark:text-white">
-                      {files.prescription.name}
-                    </span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
-                      {(files.prescription.size / 1024).toFixed(1)} KB
-                    </span>
-                  </div>
-                  <button
-                    onClick={() => removeFile('prescription')}
-                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-                  >
-                    <FiX size={18} />
-                  </button>
-                </div>
-                {isUploading && (
-                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mt-2">
-                    <div
-                      className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-                      style={{ width: `${uploadProgress}%` }}
-                    ></div>
+          {/* Only show upload section if not patient */}
+          {role !== 'patient' && (
+            <>
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Prescription Details
+                </label>
+                <textarea
+                  value={prescriptionText}
+                  onChange={(e) => setPrescriptionText(e.target.value)}
+                  className="w-full h-32 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                  placeholder="Enter prescription details..."
+                />
+              </div>
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Upload Prescription File
+                </label>
+                <label className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg cursor-pointer transition-colors">
+                  <FiUpload className="mr-2" />
+                  {files.prescription ? 'Change File' : 'Select File'}
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept=".pdf,.png,.jpg,.jpeg"
+                    onChange={(e) => handleFileChange('prescription', e)}
+                    disabled={isUploading}
+                  />
+                </label>
+                <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                  Supported formats: PDF, PNG, JPG (Max 5MB)
+                </p>
+                {files.prescription && (
+                  <div className="mt-4 p-3 border border-gray-200 dark:border-gray-700 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center">
+                        {getFileIcon(files.prescription.type)}
+                        <span className="ml-2 truncate max-w-xs dark:text-white">
+                          {files.prescription.name}
+                        </span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
+                          {(files.prescription.size / 1024).toFixed(1)} KB
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => removeFile('prescription')}
+                        className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                      >
+                        <FiX size={18} />
+                      </button>
+                    </div>
+                    {isUploading && (
+                      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mt-2">
+                        <div
+                          className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                          style={{ width: `${uploadProgress}%` }}
+                        ></div>
+                      </div>
+                    )}
+                    <div className="flex justify-end mt-3">
+                      <button
+                        onClick={() => uploadFile('prescription')}
+                        disabled={isUploading}
+                        className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                          isUploading
+                            ? 'bg-gray-200 text-gray-500 dark:bg-gray-600 dark:text-gray-400 cursor-not-allowed'
+                            : 'bg-blue-600 text-white hover:bg-blue-700'
+                        }`}
+                      >
+                        {isUploading ? 'Uploading...' : 'Upload Prescription'}
+                      </button>
+                    </div>
                   </div>
                 )}
-                <div className="flex justify-end mt-3">
-                  <button
-                    onClick={() => uploadFile('prescription')}
-                    disabled={isUploading}
-                    className={`px-3 py-1 text-sm rounded-md transition-colors ${
-                      isUploading
-                        ? 'bg-gray-200 text-gray-500 dark:bg-gray-600 dark:text-gray-400 cursor-not-allowed'
-                        : 'bg-blue-600 text-white hover:bg-blue-700'
-                    }`}
-                  >
-                    {isUploading ? 'Uploading...' : 'Upload Prescription'}
-                  </button>
-                </div>
               </div>
-            )}
-          </div>
+            </>
+          )}
           {/* Existing Prescriptions */}
           {reports.prescriptions.length > 0 && (
             <div className="mt-8">
@@ -375,13 +388,16 @@ const ClinicalNotesTab = ({ reservationId, role }) => {
                       >
                         <FiFileText className="mr-1" /> View
                       </a>
-                      <button
-                        onClick={() => deleteFile('prescription', prescription.id)}
-                        className="text-red-500 hover:text-red-700 transition-colors"
-                        title="Delete"
-                      >
-                        <FiTrash2 />
-                      </button>
+                      {/* Only show delete for non-patient */}
+                      {role !== 'patient' && (
+                        <button
+                          onClick={() => deleteFile('prescription', prescription.id)}
+                          className="text-red-500 hover:text-red-700 transition-colors"
+                          title="Delete"
+                        >
+                          <FiTrash2 />
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -394,67 +410,70 @@ const ClinicalNotesTab = ({ reservationId, role }) => {
       {/* Analysis Request Tab */}
       {activeTab === 'analysisRequest' && (
         <div>
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Upload Analysis Request
-            </label>
-            <label className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg cursor-pointer transition-colors">
-              <FiUpload className="mr-2" />
-              {files.analysisRequest ? 'Change File' : 'Select File'}
-              <input
-                type="file"
-                className="hidden"
-                accept=".pdf,.png,.jpg,.jpeg"
-                onChange={(e) => handleFileChange('analysisRequest', e)}
-                disabled={isUploading}
-              />
-            </label>
-            <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-              Supported formats: PDF, PNG, JPG (Max 5MB)
-            </p>
-            {files.analysisRequest && (
-              <div className="mt-4 p-3 border border-gray-200 dark:border-gray-700 rounded-lg">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    {getFileIcon(files.analysisRequest.type)}
-                    <span className="ml-2 truncate max-w-xs dark:text-white">
-                      {files.analysisRequest.name}
-                    </span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
-                      {(files.analysisRequest.size / 1024).toFixed(1)} KB
-                    </span>
+          {/* Only show upload section if not patient */}
+          {role !== 'patient' && (
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Upload Analysis Request
+              </label>
+              <label className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg cursor-pointer transition-colors">
+                <FiUpload className="mr-2" />
+                {files.analysisRequest ? 'Change File' : 'Select File'}
+                <input
+                  type="file"
+                  className="hidden"
+                  accept=".pdf,.png,.jpg,.jpeg"
+                  onChange={(e) => handleFileChange('analysisRequest', e)}
+                  disabled={isUploading}
+                />
+              </label>
+              <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                Supported formats: PDF, PNG, JPG (Max 5MB)
+              </p>
+              {files.analysisRequest && (
+                <div className="mt-4 p-3 border border-gray-200 dark:border-gray-700 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      {getFileIcon(files.analysisRequest.type)}
+                      <span className="ml-2 truncate max-w-xs dark:text-white">
+                        {files.analysisRequest.name}
+                      </span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
+                        {(files.analysisRequest.size / 1024).toFixed(1)} KB
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => removeFile('analysisRequest')}
+                      className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                    >
+                      <FiX size={18} />
+                    </button>
                   </div>
-                  <button
-                    onClick={() => removeFile('analysisRequest')}
-                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-                  >
-                    <FiX size={18} />
-                  </button>
-                </div>
-                {isUploading && (
-                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mt-2">
-                    <div
-                      className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-                      style={{ width: `${uploadProgress}%` }}
-                    ></div>
+                  {isUploading && (
+                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mt-2">
+                      <div
+                        className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${uploadProgress}%` }}
+                      ></div>
+                    </div>
+                  )}
+                  <div className="flex justify-end mt-3">
+                    <button
+                      onClick={() => uploadFile('analysisRequest')}
+                      disabled={isUploading}
+                      className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                        isUploading
+                          ? 'bg-gray-200 text-gray-500 dark:bg-gray-600 dark:text-gray-400 cursor-not-allowed'
+                          : 'bg-blue-600 text-white hover:bg-blue-700'
+                      }`}
+                    >
+                      {isUploading ? 'Uploading...' : 'Upload Analysis'}
+                    </button>
                   </div>
-                )}
-                <div className="flex justify-end mt-3">
-                  <button
-                    onClick={() => uploadFile('analysisRequest')}
-                    disabled={isUploading}
-                    className={`px-3 py-1 text-sm rounded-md transition-colors ${
-                      isUploading
-                        ? 'bg-gray-200 text-gray-500 dark:bg-gray-600 dark:text-gray-400 cursor-not-allowed'
-                        : 'bg-blue-600 text-white hover:bg-blue-700'
-                    }`}
-                  >
-                    {isUploading ? 'Uploading...' : 'Upload Analysis'}
-                  </button>
                 </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
           {/* Existing Analysis Requests */}
           {reports.analysis_requests.length > 0 && (
             <div className="mt-8">
@@ -484,13 +503,16 @@ const ClinicalNotesTab = ({ reservationId, role }) => {
                       >
                         <FiFileText className="mr-1" /> View
                       </a>
-                      <button
-                        onClick={() => deleteFile('analysisRequest', analysis.id)}
-                        className="text-red-500 hover:text-red-700 transition-colors"
-                        title="Delete"
-                      >
-                        <FiTrash2 />
-                      </button>
+                      {/* Only show delete for non-patient */}
+                      {role !== 'patient' && (
+                        <button
+                          onClick={() => deleteFile('analysisRequest', analysis.id)}
+                          className="text-red-500 hover:text-red-700 transition-colors"
+                          title="Delete"
+                        >
+                          <FiTrash2 />
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}

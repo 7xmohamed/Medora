@@ -90,4 +90,37 @@ class ReportController extends Controller
             'analysis_requests' => $analyses,
         ]);
     }
+
+    // Delete Doctor Report
+    public function deleteDoctorReport($id)
+    {
+        $report = DoctorReport::findOrFail($id);
+        if ($report->file_path && \Storage::disk('public')->exists($report->file_path)) {
+            \Storage::disk('public')->delete($report->file_path);
+        }
+        $report->delete();
+        return response()->json(['message' => 'Doctor report deleted successfully']);
+    }
+
+    // Delete Prescription
+    public function deletePrescription($id)
+    {
+        $prescription = Prescription::findOrFail($id);
+        if ($prescription->file_path && \Storage::disk('public')->exists($prescription->file_path)) {
+            \Storage::disk('public')->delete($prescription->file_path);
+        }
+        $prescription->delete();
+        return response()->json(['message' => 'Prescription deleted successfully']);
+    }
+
+    // Delete Analysis Request
+    public function deleteAnalysisRequest($id)
+    {
+        $analysis = RequestAnalyse::findOrFail($id);
+        if ($analysis->file_path && \Storage::disk('public')->exists($analysis->file_path)) {
+            \Storage::disk('public')->delete($analysis->file_path);
+        }
+        $analysis->delete();
+        return response()->json(['message' => 'Analysis request deleted successfully']);
+    }
 }

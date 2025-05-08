@@ -105,7 +105,7 @@ const AppointmentDetails = () => {
             />
           )}
 
-          {activeTab === 'notes' && role !== 'patient' && (
+          {activeTab === 'notes' && (
             <ClinicalNotesTab role={role} reservationId={appointmentData.id} />
           )}
         </div>
