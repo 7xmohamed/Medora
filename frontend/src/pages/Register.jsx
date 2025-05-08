@@ -148,7 +148,7 @@ export default function RegisterPage() {
         const [error, setError] = useState('');
 
         const validateFile = (file) => {
-            if (!file) return 'File is required';
+            if (required && !file) return 'File is required';
             if (!file.type.startsWith('image/')) return 'File must be an image';
             if (file.size > MAX_FILE_SIZE) return 'File size must be less than 2MB';
             return '';
@@ -166,13 +166,22 @@ export default function RegisterPage() {
                     return;
                 }
 
+                // Create preview
                 const reader = new FileReader();
                 reader.onloadend = () => {
                     setPreview(reader.result);
                 };
                 reader.readAsDataURL(file);
+
+                // Update form data with file
+                onChange({
+                    target: {
+                        name: name,
+                        value: file,
+                        type: 'file'
+                    }
+                });
             }
-            onChange(e);
         };
 
         const handleRemove = () => {

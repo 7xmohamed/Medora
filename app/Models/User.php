@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use App\Traits\HasStorageFiles;
+use Illuminate\Support\Facades\Storage;
 
 class User extends Authenticatable
 {
@@ -26,8 +27,9 @@ class User extends Authenticatable
         'phone',
         'address',
         'profile_picture',
+        'id_card_front',
+        'id_card_back'
     ];
-
 
     protected $hidden = [
         'password',
@@ -84,16 +86,19 @@ class User extends Authenticatable
 
     public function getProfilePictureUrlAttribute()
     {
-        return $this->getProfilePictureUrl();
+        return $this->profile_picture ? 
+            Storage::disk('public')->url($this->profile_picture) : null;
     }
 
     public function getIdCardFrontUrlAttribute()
     {
-        return $this->getIdCardFrontUrl();
+        return $this->id_card_front ? 
+            Storage::disk('public')->url('doctors/documents/' . $this->id_card_front) : null;
     }
 
     public function getIdCardBackUrlAttribute()
     {
-        return $this->getIdCardBackUrl();
+        return $this->id_card_back ? 
+            Storage::disk('public')->url('doctors/documents/' . $this->id_card_back) : null;
     }
 }

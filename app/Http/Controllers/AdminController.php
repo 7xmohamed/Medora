@@ -113,28 +113,23 @@ class AdminController extends Controller
             }])->get();
 
             $formattedDoctors = $doctors->map(function ($doctor) {
+                $user = $doctor->user;
                 return [
                     'id' => $doctor->id,
-                    'name' => $doctor->user->name,
-                    'email' => $doctor->user->email,
+                    'name' => $user->name,
+                    'email' => $user->email,
                     'speciality' => $doctor->speciality ?? 'Not specified',
                     'niom' => $doctor->niom,
                     'is_verified' => (bool)$doctor->is_verified,
                     'experience' => $doctor->experience ?? 'Not specified',
                     'education' => $doctor->education ?? 'Not specified',
                     'created_at' => $doctor->created_at,
-                    'profile_picture' => $doctor->user->profile_picture ? 
-                        Storage::disk('public')->url($doctor->user->profile_picture) : null,
-                    'id_card_front' => $doctor->user->id_card_front ? 
-                        Storage::disk('public')->url($doctor->user->id_card_front) : null,
-                    'id_card_back' => $doctor->user->id_card_back ? 
-                        Storage::disk('public')->url($doctor->user->id_card_back) : null,
-                    'verification_documents' => [
-                        'front' => $doctor->user->id_card_front ? 
-                            Storage::disk('public')->url($doctor->user->id_card_front) : null,
-                        'back' => $doctor->user->id_card_back ? 
-                            Storage::disk('public')->url($doctor->user->id_card_back) : null,
-                    ]
+                    'profile_picture' => $user->profile_picture ? 
+                        Storage::disk('public')->url($user->profile_picture) : null,
+                    'id_card_front' => $user->id_card_front ? 
+                        Storage::disk('public')->url('doctors/documents/' . $user->id_card_front) : null,
+                    'id_card_back' => $user->id_card_back ? 
+                        Storage::disk('public')->url('doctors/documents/' . $user->id_card_back) : null
                 ];
             });
             

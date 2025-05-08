@@ -211,7 +211,8 @@ export default function Doctors() {
                                             alt="ID Card Front"
                                             className="w-full h-32 object-cover rounded"
                                             onError={(e) => {
-                                                e.target.src = 'https://via.placeholder.com/300x200?text=Image+Not+Found';
+                                                console.error('Failed to load image:', selectedDoctor.id_card_front);
+                                                e.target.src = '/images/placeholder-id-card.png';
                                             }}
                                         />
                                         <p className="mt-2 text-sm text-center text-gray-600 dark:text-gray-400">ID Card Front</p>

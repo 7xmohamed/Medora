@@ -21,7 +21,7 @@ class Doctor extends Model
         'image',
         'price',
         'languages',
-        'experience',
+        'experience', 
         'education',
         'city',
         'total_revenue',
@@ -38,10 +38,7 @@ class Doctor extends Model
         'monthly_revenue' => 'float',
     ];
 
-    protected $appends = [
-        'id_card_front_url',
-        'id_card_back_url'
-    ];
+    protected $appends = ['profile_picture_url', 'id_card_front_url', 'id_card_back_url'];
 
     public function user()
     {
@@ -81,22 +78,24 @@ class Doctor extends Model
         });
     }
 
+    // Get profile picture through User relation
     public function getProfilePictureUrlAttribute()
     {
         return $this->user->profile_picture ? 
             Storage::disk('public')->url($this->user->profile_picture) : null;
     }
 
+    // Get ID card URLs through User relation
     public function getIdCardFrontUrlAttribute()
     {
         return $this->user->id_card_front ? 
-            Storage::disk('public')->url($this->user->id_card_front) : null;
+            Storage::disk('public')->url('doctors/documents/' . $this->user->id_card_front) : null;
     }
 
     public function getIdCardBackUrlAttribute()
     {
         return $this->user->id_card_back ? 
-            Storage::disk('public')->url($this->user->id_card_back) : null;
+            Storage::disk('public')->url('doctors/documents/' . $this->user->id_card_back) : null;
     }
 
     public function setLocationAttribute($value)

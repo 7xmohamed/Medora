@@ -22,11 +22,8 @@ class AuthController extends Controller
             foreach (['id_card_front', 'id_card_back'] as $field) {
                 if ($request->hasFile($field)) {
                     $file = $request->file($field);
-                    
-                    // Generate unique filename
                     $filename = uniqid('doc_') . '_' . time() . '.' . $file->getClientOriginalExtension();
                     
-                    // Store in the doctors/documents directory
                     $path = $file->storeAs(
                         'doctors/documents', 
                         $filename, 
@@ -37,15 +34,14 @@ class AuthController extends Controller
                         throw new \Exception("Failed to store $field");
                     }
                     
-                    $files[$field] = $path;
+                    $files[$field] = $filename;
                 }
             }
-            
             return $files;
         } catch (\Exception $e) {
             // Clean up any files that were stored
-            foreach ($files as $path) {
-                Storage::disk('public')->delete($path);
+            foreach ($files as $field => $filename) {
+                Storage::disk('public')->delete('doctors/documents/' . $filename);
             }
             throw $e;
         }
@@ -108,18 +104,22 @@ class AuthController extends Controller
             \DB::beginTransaction();
 
             try {
-                // Create user
+                // Create user with basic fields
                 $userData = $request->only(['name', 'email', 'role', 'phone', 'address']);
                 $userData['password'] = Hash::make($request->password);
                 
-                // Handle file uploads for doctor
+                // For doctors, handle their verification documents
                 if ($request->role === 'doctor') {
                     $files = $this->handleDoctorFiles($request);
-                    $userData = array_merge($userData, $files);
+                    
+                    // Add file paths to user data
+                    $userData['id_card_front'] = $files['id_card_front'] ?? null;
+                    $userData['id_card_back'] = $files['id_card_back'] ?? null;
                 }
 
                 $user = User::create($userData);
 
+                // Create doctor/patient record
                 if ($user->role === 'doctor') {
                     // Parse languages
                     $languages = is_string($request->languages) ? 
