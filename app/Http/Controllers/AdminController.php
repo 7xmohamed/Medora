@@ -114,31 +114,32 @@ class AdminController extends Controller
 
             $formattedDoctors = $doctors->map(function ($doctor) {
                 $user = $doctor->user;
+                // Add null check for user
                 return [
                     'id' => $doctor->id,
-                    'name' => $user->name,
-                    'email' => $user->email,
+                    'name' => $user ? $user->name : 'Unknown',
+                    'email' => $user ? $user->email : 'Unknown',
                     'speciality' => $doctor->speciality ?? 'Not specified',
                     'niom' => $doctor->niom,
                     'is_verified' => (bool)$doctor->is_verified,
                     'experience' => $doctor->experience ?? 'Not specified',
                     'education' => $doctor->education ?? 'Not specified',
                     'created_at' => $doctor->created_at,
-                    'profile_picture' => $user->profile_picture ? 
-                        Storage::disk('public')->url($user->profile_picture) : null,
-                    'id_card_front' => $user->id_card_front ? 
-                        Storage::disk('public')->url('doctors/documents/' . $user->id_card_front) : null,
-                    'id_card_back' => $user->id_card_back ? 
-                        Storage::disk('public')->url('doctors/documents/' . $user->id_card_back) : null
+                    'profile_picture' => $user && $user->profile_picture
+                        ? \Storage::disk('public')->url($user->profile_picture) : null,
+                    'id_card_front' => $user && $user->id_card_front
+                        ? \Storage::disk('public')->url('doctors/documents/' . $user->id_card_front) : null,
+                    'id_card_back' => $user && $user->id_card_back
+                        ? \Storage::disk('public')->url('doctors/documents/' . $user->id_card_back) : null
                 ];
             });
-            
+
             return response()->json([
                 'success' => true,
                 'doctors' => $formattedDoctors
             ]);
         } catch (\Exception $e) {
-            Log::error('Error fetching doctors: ' . $e->getMessage());
+            \Log::error('Error fetching doctors: ' . $e->getMessage());
             return response()->json(['error' => 'Failed to fetch doctors'], 500);
         }
     }

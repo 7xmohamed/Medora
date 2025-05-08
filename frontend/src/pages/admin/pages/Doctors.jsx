@@ -53,10 +53,29 @@ export default function Doctors() {
                 throw new Error('Failed to fetch doctors');
             }
 
-            setDoctors(response.data.doctors.map(doctor => ({
-                ...doctor,
-                is_verified: Boolean(doctor.is_verified)
-            })));
+            // Normalize doctor data to flatten user fields if present
+            setDoctors(response.data.doctors.map(doctor => {
+                // If doctor.user exists, flatten user fields into doctor object
+                if (doctor.user) {
+                    return {
+                        ...doctor,
+                        name: doctor.user.name,
+                        email: doctor.user.email,
+                        profile_picture: doctor.user.profile_picture,
+                        id_card_front: doctor.user.id_card_front,
+                        id_card_back: doctor.user.id_card_back,
+                        // fallback for is_verified if not present at root
+                        is_verified: typeof doctor.is_verified !== 'undefined'
+                            ? Boolean(doctor.is_verified)
+                            : Boolean(doctor.user.is_verified),
+                    };
+                }
+                // Otherwise, fallback to root fields
+                return {
+                    ...doctor,
+                    is_verified: Boolean(doctor.is_verified),
+                };
+            }));
             setError(null);
         } catch (err) {
             console.error('Error fetching doctors:', err);

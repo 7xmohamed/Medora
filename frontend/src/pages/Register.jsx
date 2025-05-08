@@ -24,7 +24,6 @@ import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
 
-// Add these constants at the top of the file
 const SPECIALTIES = [
     "General Practice",
     "Cardiology",
@@ -88,37 +87,29 @@ export default function RegisterPage() {
         setIsLoading(true);
 
         try {
-            if (formData.role === 'doctor' && (!formData.latitude || !formData.longitude)) {
-                throw new Error('Please select your practice location on the map');
-            }
-
-            // Create FormData object for file uploads
             const formDataObj = new FormData();
 
-            // Append all basic fields
             Object.keys(formData).forEach(key => {
-                // Skip files and arrays as they need special handling
-                if (key !== 'id_card_front' &&
-                    key !== 'id_card_back' &&
-                    key !== 'languages') {
-                    formDataObj.append(key, formData[key]);
+                if (formData.role === 'patient') {
+                    if (['name', 'email', 'password', 'password_confirmation', 'role', 'phone', 'address'].includes(key)) {
+                        formDataObj.append(key, formData[key]);
+                    }
+                } else {
+                    if (key !== 'id_card_front' && key !== 'id_card_back' && key !== 'languages') {
+                        formDataObj.append(key, formData[key]);
+                    }
                 }
             });
 
-            // Handle files
             if (formData.id_card_front) {
                 formDataObj.append('id_card_front', formData.id_card_front);
             }
             if (formData.id_card_back) {
                 formDataObj.append('id_card_back', formData.id_card_back);
             }
-
-            // Handle languages array - convert to JSON string
             if (formData.languages.length > 0) {
                 formDataObj.append('languages', JSON.stringify(formData.languages));
             }
-
-            // Ensure location data is properly set
             if (formData.role === 'doctor') {
                 if (!formData.latitude || !formData.longitude) {
                     throw new Error('Please select your location on the map');
@@ -128,7 +119,11 @@ export default function RegisterPage() {
 
             await register(formDataObj);
         } catch (err) {
-            setError(err.message || 'Registration failed. Please check your information and try again.');
+            if (err.fields) {
+                setError(Object.values(err.fields).join(' '));
+            } else {
+                setError(err.message || 'Registration failed. Please check your information and try again.');
+            }
         } finally {
             setIsLoading(false);
         }
@@ -145,7 +140,7 @@ export default function RegisterPage() {
 
     const FileInput = ({ label, name, onChange, required }) => {
         const [preview, setPreview] = useState(null);
-        const [error, setError] = useState('');
+        const [fileError, setFileError] = useState('');
 
         const validateFile = (file) => {
             if (required && !file) return 'File is required';
@@ -156,24 +151,21 @@ export default function RegisterPage() {
 
         const handleFileChange = (e) => {
             const file = e.target.files[0];
-            setError('');
+            setFileError('');
 
             if (file) {
                 const validationError = validateFile(file);
                 if (validationError) {
-                    setError(validationError);
+                    setFileError(validationError);
                     e.target.value = '';
                     return;
                 }
-
-                // Create preview
                 const reader = new FileReader();
                 reader.onloadend = () => {
                     setPreview(reader.result);
                 };
                 reader.readAsDataURL(file);
 
-                // Update form data with file
                 onChange({
                     target: {
                         name: name,
@@ -242,7 +234,7 @@ export default function RegisterPage() {
                         </label>
                     </div>
                 )}
-                {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
+                {fileError && <p className="text-sm text-red-600 dark:text-red-400">{fileError}</p>}
             </div>
         );
     };
@@ -254,7 +246,6 @@ export default function RegisterPage() {
             click(e) {
                 setPosition(e.latlng);
                 onLocationSelect(e.latlng);
-                // Reverse geocode to get address
                 fetch(`https://nominatim.openstreetmap.org/reverse?lat=${e.latlng.lat}&lon=${e.latlng.lng}&format=json`)
                     .then(res => res.json())
                     .then(data => {
@@ -491,7 +482,6 @@ export default function RegisterPage() {
                                             placeholder="e.g., 5 years in cardiology"
                                             Icon={BriefcaseIcon}
                                         />
-
                                         <InputField
                                             label="Education"
                                             name="education"
@@ -502,7 +492,6 @@ export default function RegisterPage() {
                                             textarea
                                             Icon={AcademicCapIcon}
                                         />
-
                                         <InputField
                                             label="Description"
                                             name="description"
@@ -533,7 +522,6 @@ export default function RegisterPage() {
                                                 />
                                                 <LocationPicker
                                                     onLocationSelect={(latlng) => {
-                                                        // Reverse geocode to get address details
                                                         fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latlng.lat}&lon=${latlng.lng}&format=json`)
                                                             .then(res => res.json())
                                                             .then(data => {

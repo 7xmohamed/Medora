@@ -16,12 +16,7 @@ class Patient extends Model
         'date_of_birth',
         'gender',
         'medical_history',
-        'allergies',
-        'health_score'
-    ];
-
-    protected $attributes = [
-        'health_score' => 100
+        'allergies'
     ];
 
     public function user()

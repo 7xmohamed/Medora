@@ -625,10 +625,6 @@ export default function PatientProfileView() {
                                         <p className="text-sm text-red-800 dark:text-red-200">Canceled</p>
                                         <p className="text-2xl font-bold text-red-600 dark:text-red-400">{analytics.canceledAppointments || 0}</p>
                                     </div>
-                                    <div className="bg-yellow-50 dark:bg-yellow-900/30 p-4 rounded-lg">
-                                        <p className="text-sm text-yellow-800 dark:text-yellow-200">Health Score</p>
-                                        <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{analytics.healthScore || 0}%</p>
-                                    </div>
                                     <div className="bg-indigo-50 dark:bg-indigo-900/30 p-4 rounded-lg">
                                         <p className="text-sm text-indigo-800 dark:text-indigo-200">Last Checkup</p>
                                         <p className="text-xl font-bold text-indigo-600 dark:text-indigo-400">
