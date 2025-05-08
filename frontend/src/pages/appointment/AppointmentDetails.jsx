@@ -109,7 +109,7 @@ const AppointmentDetails = () => {
             <ClinicalNotesTab role={role} reservationId={appointmentData.id} />
           )}
         </div>
-      </div>
+      </main>
     </div>
   );
 };

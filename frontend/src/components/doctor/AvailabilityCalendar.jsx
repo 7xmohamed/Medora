@@ -92,7 +92,14 @@ export default function AvailabilityCalendar({ availabilities, onAddAvailability
 
     return (
         <div className="relative">
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6">
+                <div className="mb-6">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Working Hours</h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                        Click and drag to set your available time slots. Click on an existing slot to modify or delete it.
+                    </p>
+                </div>
+
                 <div className="calendar-container">
                     <FullCalendar
                         plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
@@ -117,74 +124,88 @@ export default function AvailabilityCalendar({ availabilities, onAddAvailability
                         slotDuration="00:30:00"
                         snapDuration="00:15:00"
                         slotLabelInterval="01:00:00"
+                        expandRows={true}
+                        stickyHeaderDates={true}
+                        nowIndicator={true}
+                        viewDidMount={(view) => {
+                            // Add custom styles to the calendar
+                            const calendarEl = view.el;
+                            const headers = calendarEl.querySelectorAll('.fc-col-header-cell');
+                            headers.forEach(header => {
+                                header.style.backgroundColor = 'transparent';
+                                header.style.borderRadius = '8px';
+                            });
+                        }}
+                        eventContent={renderEventContent}
+                        slotLaneClassNames="dark:bg-gray-800/50 transition-colors"
+                        slotLabelClassNames="text-sm font-medium text-gray-500 dark:text-gray-400"
+                        dayHeaderClassNames="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase"
+                        eventClassNames="rounded-lg shadow-sm transition-transform hover:scale-[1.02]"
                         selectConstraint={{
                             startTime: '06:00:00',
                             endTime: '22:00:00',
                             dows: [0, 1, 2, 3, 4, 5, 6]
                         }}
-                        selectOverlap={false}
-                        slotEventOverlap={false}
-                        eventTimeFormat={{
-                            hour: '2-digit',
-                            minute: '2-digit',
-                            meridiem: false,
-                            hour12: false
-                        }}
-                        validRange={{
-                            start: new Date()
-                        }}
-                        nowIndicator={true}
                     />
                 </div>
             </div>
 
+            {/* Delete Modal */}
             <AnimatePresence>
                 {showDeleteModal && (
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+                        className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50"
                     >
                         <motion.div
                             initial={{ scale: 0.95, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.95, opacity: 0 }}
-                            className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md shadow-xl"
+                            className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-md shadow-xl"
                         >
                             <div className="flex justify-between items-center mb-4">
-                                <h3 className="text-lg font-semibold dark:text-white">Delete Availability</h3>
-                                <button onClick={() => setShowDeleteModal(false)} className="text-gray-400 hover:text-gray-500">
+                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Modify Availability</h3>
+                                <button
+                                    onClick={() => setShowDeleteModal(false)}
+                                    className="text-gray-400 hover:text-gray-500 transition-colors"
+                                >
                                     <XMarkIcon className="h-5 w-5" />
                                 </button>
                             </div>
-                            <div className="mb-4">
-                                <p className="text-gray-600 dark:text-gray-300">
-                                    Selected slot: {selectedEvent?.time}
+
+                            <div className="mb-6">
+                                <p className="text-sm text-gray-600 dark:text-gray-300 mb-1">
+                                    Selected time slot:
                                 </p>
-                                <p className="text-gray-600 dark:text-gray-300">
+                                <p className="text-base font-medium text-gray-900 dark:text-white">
+                                    {selectedEvent?.time}
+                                </p>
+                                <p className="text-base font-medium text-gray-900 dark:text-white">
                                     on {selectedEvent?.day}
                                 </p>
                             </div>
+
                             <div className="space-y-3">
                                 <button
                                     onClick={() => handleDelete(false)}
                                     disabled={isSubmitting}
-                                    className="w-full px-4 py-2 text-sm font-medium text-red-600 bg-red-50 rounded-md hover:bg-red-100"
+                                    className="w-full px-4 py-2.5 text-sm font-medium text-red-600 bg-red-50 rounded-xl hover:bg-red-100 transition-colors"
                                 >
-                                    Delete Only This Specific Slot
+                                    Delete This Slot Only
                                 </button>
                                 <button
                                     onClick={() => handleDelete(true)}
                                     disabled={isSubmitting}
-                                    className="w-full px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700"
+                                    className="w-full px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-xl hover:bg-red-700 transition-colors"
                                 >
                                     Delete All {selectedEvent?.day} Slots at {selectedEvent?.time}
                                 </button>
                                 <button
                                     onClick={() => setShowDeleteModal(false)}
                                     disabled={isSubmitting}
-                                    className="w-full px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+                                    className="w-full px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors"
                                 >
                                     Cancel
                                 </button>
@@ -199,9 +220,9 @@ export default function AvailabilityCalendar({ availabilities, onAddAvailability
 
 function renderEventContent(eventInfo) {
     return (
-        <div className="p-1">
-            <div className="text-xs font-semibold">{eventInfo.timeText}</div>
-            <div className="text-xs">{eventInfo.event.title}</div>
+        <div className="px-2 py-1 text-xs">
+            <div className="font-medium">{eventInfo.timeText}</div>
+            <div className="text-xs opacity-75">Available</div>
         </div>
     );
 }

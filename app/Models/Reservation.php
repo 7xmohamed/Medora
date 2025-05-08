@@ -26,6 +26,10 @@ class Reservation extends Model {
         'reservation_time',
     ];
 
+    protected $casts = [
+        'reservation_date' => 'date',
+        'reservation_time' => 'datetime:H:i:s',
+    ];
 
     public function patient()
     {

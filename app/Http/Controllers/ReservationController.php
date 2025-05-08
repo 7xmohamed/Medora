@@ -6,8 +6,10 @@ use Carbon\Carbon;
 use App\Models\Doctor;
 use App\Models\Patient;
 use App\Models\Reservation;
+use App\Models\PaymentRefund;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
 
 class ReservationController extends Controller
 {
@@ -43,7 +45,7 @@ class ReservationController extends Controller
 
             $bookedSlots = Reservation::where('doctor_id', $doctorId)
                 ->whereDate('reservation_date', $date)
-                ->whereIn('reservation_status', ['confirmed', 'pending_payment'])
+                ->whereIn('reservation_status', ['pending', 'confirmed']) // Update status check
                 ->pluck('reservation_time')
                 ->toArray();
 
@@ -106,12 +108,6 @@ class ReservationController extends Controller
                 'reservation_time' => [
                     'required',
                     'date_format:H:i:s',
-                    function ($attribute, $value, $fail) {
-                        $time = Carbon::parse($value);
-                        if ($time->minute % 30 !== 0) {
-                            $fail('Reservation time must be in 30-minute intervals.');
-                        }
-                    },
                 ],
                 'reason' => 'required|string|max:500',
                 'price' => 'required|numeric|gt:0'
@@ -120,9 +116,47 @@ class ReservationController extends Controller
             if ($validator->fails()) {
                 return response()->json([
                     'status' => 'error',
-                    'message' => $validator->errors()->first(),
-                    'errors' => $validator->errors()
+                    'message' => $validator->errors()->first()
                 ], 422);
+            }
+
+            // Validate time format and 30-minute intervals
+            $time = Carbon::parse($request->reservation_time);
+            $minutes = (int)$time->format('i');
+            
+            if ($minutes % 30 !== 0) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Please select a valid time slot (every 30 minutes)'
+                ], 422);
+            }
+
+            // Convert times for comparison
+            $requestDateTime = Carbon::parse($request->reservation_date . ' ' . $request->reservation_time);
+            $dayOfWeek = strtolower($requestDateTime->format('l'));
+
+            // Get doctor availability
+            $doctor = Doctor::findOrFail($request->doctor_id);
+            $availability = $doctor->availabilities()
+                ->where('day_of_week', $dayOfWeek)
+                ->first();
+
+            if (!$availability) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => "Doctor is not available on {$dayOfWeek}s"
+                ], 400);
+            }
+
+            // Compare time within working hours
+            $startTime = Carbon::parse($request->reservation_date . ' ' . $availability->start_time);
+            $endTime = Carbon::parse($request->reservation_date . ' ' . $availability->end_time);
+
+            if ($requestDateTime < $startTime || $requestDateTime >= $endTime) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => "Doctor's working hours are between {$startTime->format('H:i')} and {$endTime->format('H:i')}"
+                ], 400);
             }
 
             // Check if patient already has a reservation at the same time
@@ -139,34 +173,6 @@ class ReservationController extends Controller
                 ], 409);
             }
 
-            $doctor = Doctor::findOrFail($request->doctor_id);
-            $date = Carbon::parse($request->reservation_date);
-            $dayOfWeek = $date->format('l');
-
-            // Checking doctor availability
-            $availability = $doctor->availabilities()
-                ->where('day_of_week', $dayOfWeek)
-                ->first();
-
-            if (!$availability) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => "Doctor is not available on {$dayOfWeek}s"
-                ], 400);
-            }
-
-            // time slot validation
-            $requestTime = Carbon::parse($request->reservation_time);
-            $startTime = Carbon::parse($availability->start_time);
-            $endTime = Carbon::parse($availability->end_time);
-
-            if ($requestTime->lt($startTime) || $requestTime->gte($endTime)) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => "Doctor's working hours are between {$startTime->format('H:i')} and {$endTime->format('H:i')}"
-                ], 400);
-            }
-
             // Check for existing reservations
             $existingReservation = Reservation::where('doctor_id', $request->doctor_id)
                 ->whereDate('reservation_date', $request->reservation_date)
@@ -175,8 +181,7 @@ class ReservationController extends Controller
                 ->first();
 
             if ($existingReservation) {
-
-                $nextSlot = $this->findNextAvailableSlot($doctor, $date, $requestTime);
+                $nextSlot = $this->findNextAvailableSlot($doctor, $requestDateTime->copy()->startOfDay(), $requestDateTime);
                 
                 return response()->json([
                     'status' => 'error',
@@ -188,13 +193,13 @@ class ReservationController extends Controller
                 ], 409);
             }
 
-            // Create reservation
+            // Create reservation with proper time format
             $reservation = new Reservation();
             $reservation->patient_id = $patient->id;
             $reservation->doctor_id = $request->doctor_id;
             $reservation->price = $request->price;
             $reservation->payment_status = 'paid';
-            $reservation->reservation_status = 'confirmed';
+            $reservation->reservation_status = 'pending'; // Changed from 'confirmed' to 'pending'
             $reservation->reason = $request->reason;
             $reservation->reservation_date = $request->reservation_date;
             $reservation->reservation_time = $request->reservation_time;
@@ -217,7 +222,7 @@ class ReservationController extends Controller
             
             return response()->json([
                 'status' => 'error',
-                'message' => 'An error occurred while creating the reservation'
+                'message' => 'Failed to create reservation. Please try again later.'
             ], 500);
         }
     }
@@ -276,34 +281,67 @@ class ReservationController extends Controller
 
     public function getPatientReservations(Request $request)
     {
-        $user = $request->user();
-        if (!$user) {
-            return response()->json(['error' => 'User not authenticated'], 401);
+        try {
+            $user = $request->user();
+            if (!$user || !$user->patient) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Patient profile not found'
+                ], 404);
+            }
+
+            $reservations = Reservation::where('patient_id', $user->patient->id)
+                ->with(['doctor.user']) // Eager load relationships
+                ->orderBy('reservation_date', 'desc')
+                ->orderBy('reservation_time', 'desc')
+                ->get();
+                
+            return response()->json([
+                'status' => 'success',
+                'data' => $reservations->map(function ($reservation) {
+                    try {
+                        $dateTime = Carbon::parse($reservation->reservation_date . ' ' . $reservation->reservation_time);
+                        
+                        return [
+                            'id' => $reservation->id,
+                            'doctor_name' => $reservation->doctor->user->name ?? 'Unknown Doctor',
+                            'specialization' => $reservation->doctor->speciality ?? 'Unknown',
+                            'date_time' => $dateTime->format('Y-m-d\TH:i:s'),
+                            'status' => $reservation->reservation_status,
+                            'location' => $reservation->doctor->location ?? 'Unknown Location',
+                        ];
+                    } catch (\Exception $e) {
+                        \Log::error('Error formatting reservation:', [
+                            'reservation_id' => $reservation->id,
+                            'error' => $e->getMessage()
+                        ]);
+                        
+                        // Return a safely formatted version if date parsing fails
+                        return [
+                            'id' => $reservation->id,
+                            'doctor_name' => $reservation->doctor->user->name ?? 'Unknown Doctor',
+                            'specialization' => $reservation->doctor->speciality ?? 'Unknown',
+                            'date_time' => Carbon::now()->format('Y-m-d\TH:i:s'),
+                            'status' => $reservation->reservation_status,
+                            'location' => $reservation->doctor->location ?? 'Unknown Location',
+                        ];
+                    }
+                })
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error fetching patient reservations:', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to fetch reservations',
+                'debug_message' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
         }
-
-        $patientId = $user->patient->id;
-
-        $reservations = Reservation::where('patient_id', $patientId)->get();
-        if ($reservations->isEmpty()) {
-            return response()->json(['message' => 'No reservations found'], 404);
-        }
-
-        $data = $reservations->map(function ($reservation) {
-            return [
-                'id' => $reservation->id,
-                'doctor_name' => $reservation->doctor->user->name,
-                'specialization' => $reservation->doctor->speciality,
-                'date_time' => $reservation->reservation_date . 'T' . $reservation->reservation_time,
-                'status' => $reservation->reservation_status,
-                'location' => $reservation->doctor->location,
-            ];
-        })->values()->toArray();
-
-        return response()->json([
-            'status' => 'success',
-            'data' => $data
-        ]);
     }
+
     public function getReservationById($id)
     {
         $reservation = Reservation::find($id);
@@ -319,17 +357,110 @@ class ReservationController extends Controller
     
     public function cancelReservation($reservationId)
     {
-        $reservation = Reservation::find($reservationId);
-        if (!$reservation) {
-            return response()->json(['message' => 'Reservation not found'], 404);
+        DB::beginTransaction();
+        try {
+            $reservation = Reservation::with(['doctor', 'patient'])->findOrFail($reservationId);
+            
+            // ...existing authorization checks...
+
+            $doctor = $reservation->doctor;
+            $currentRevenue = $doctor->total_revenue;
+            $currentMonthlyRevenue = $doctor->monthly_revenue;
+            
+            // Check if reservation is from current month
+            $isCurrentMonth = Carbon::parse($reservation->created_at)->month === now()->month;
+            
+            // Update revenues
+            DB::update("
+                UPDATE doctors 
+                SET total_revenue = GREATEST(total_revenue - ?, 0),
+                    monthly_revenue = CASE 
+                        WHEN ? THEN GREATEST(monthly_revenue - ?, 0)
+                        ELSE monthly_revenue 
+                    END
+                WHERE id = ?
+            ", [$reservation->price, $isCurrentMonth, $reservation->price, $doctor->id]);
+
+            // Update reservation status
+            $reservation->update([
+                'reservation_status' => 'canceled',
+                'updated_at' => now()
+            ]);
+
+            // Create refund record
+            if ($reservation->payment_status === 'paid') {
+                PaymentRefund::create([
+                    'reservation_id' => $reservation->id,
+                    'patient_id' => auth()->id(),
+                    'doctor_id' => $doctor->id,
+                    'amount' => $reservation->price,
+                    'status' => 'processed',
+                    'refund_date' => now()
+                ]);
+            }
+
+            // Reload doctor to get updated values
+            $doctor->refresh();
+
+            DB::commit();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Reservation canceled successfully',
+                'data' => [
+                    'reservation_id' => $reservationId,
+                    'previous_total_revenue' => $currentRevenue,
+                    'new_total_revenue' => $doctor->total_revenue,
+                    'previous_monthly_revenue' => $currentMonthlyRevenue,
+                    'new_monthly_revenue' => $doctor->monthly_revenue,
+                    'refunded_amount' => $reservation->price
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Cancellation failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to cancel reservation'
+            ], 500);
         }
+    }
 
-        $reservation->reservation_status = 'canceled';
-        $reservation->save();
+    public function getBookedSlots($doctorId, Request $request)
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'date' => 'required|date'
+            ]);
 
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Reservation canceled successfully'
-        ]);
+            if ($validator->fails()) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => $validator->errors()->first()
+                ], 400);
+            }
+
+            $bookedSlots = Reservation::where('doctor_id', $doctorId)
+                ->whereDate('reservation_date', $request->date)
+                ->whereIn('reservation_status', ['pending', 'confirmed']) // Update status check
+                ->pluck('reservation_time')
+                ->toArray();
+
+            return response()->json([
+                'status' => 'success',
+                'data' => $bookedSlots
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to fetch booked slots'
+            ], 500);
+        }
     }
 }
