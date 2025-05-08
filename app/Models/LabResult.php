@@ -12,6 +12,11 @@ class LabResult extends Model
         'file_path',
     ];
 
+    protected $casts = [
+        'reservation_id' => 'integer',
+        'file_path' => 'string',
+    ];
+
     public function reservation(){
         return $this->belongsTo(Reservation::class);
     }
