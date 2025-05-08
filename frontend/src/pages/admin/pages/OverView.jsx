@@ -20,10 +20,68 @@ import {
     PieChart,
     Pie,
     Cell,
-    Legend,
-    BarChart,
-    Bar
+    Legend
 } from 'recharts';
+
+
+const CustomTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+        return (
+            <div className="bg-white dark:bg-gray-800 p-4 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg">
+                <p className="text-gray-600 dark:text-gray-400 mb-2">
+                    {new Date(label).toLocaleDateString('default', { month: 'long', year: 'numeric' })}
+                </p>
+                <div className="space-y-1">
+                    <p className="font-semibold text-emerald-600">
+                        Total Users: {payload[0].value}
+                    </p>
+                    <p className="text-sm text-blue-600">
+                        Growth Rate: {payload[1]?.value?.toFixed(1)}%
+                    </p>
+                    <div className="flex gap-2 text-xs mt-1">
+                        <span className="text-emerald-500">Doctors: {payload[0].payload.doctors}</span>
+                        <span className="text-indigo-500">Patients: {payload[0].payload.patients}</span>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+    return null;
+};
+
+const ReservationTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+        const total = payload.reduce((sum, item) => sum + item.value, 0);
+        return (
+            <div className="bg-white dark:bg-gray-800 p-4 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg">
+                <p className="text-gray-600 dark:text-gray-400 mb-2 font-medium">
+                    {new Date(label).toLocaleDateString('default', { month: 'short', day: 'numeric' })}
+                </p>
+                <div className="space-y-1.5">
+                    {payload.map((item, index) => (
+                        <div key={index} className="flex items-center justify-between gap-4">
+                            <span className={`
+                                ${item.name === 'confirmed' ? 'text-emerald-600' :
+                                    item.name === 'pending' ? 'text-yellow-600' : 'text-red-600'} 
+                                capitalize
+                            `}>
+                                {item.name}
+                            </span>
+                            <span className="font-medium">{item.value}</span>
+                        </div>
+                    ))}
+                    <div className="border-t border-gray-200 dark:border-gray-600 mt-2 pt-2">
+                        <div className="flex items-center justify-between font-medium">
+                            <span className="text-blue-600">Total</span>
+                            <span>{total}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+    return null;
+};
 
 export default function Overview() {
     const [stats, setStats] = useState({
@@ -86,7 +144,11 @@ export default function Overview() {
             const response = await api.get('/admin/reservation-stats');
             if (response.data.success) {
                 setReservationStats(response.data.data.daily || []);
-                setReservationSummary(response.data.data.summary || {});
+                setReservationSummary({
+                    ...response.data.data.summary,
+                    today: response.data.data.today,
+                    monthly: response.data.data.monthly
+                });
             } else {
                 throw new Error(response.data.error || 'Failed to fetch stats');
             }
@@ -94,12 +156,10 @@ export default function Overview() {
             console.error('Failed to fetch reservation stats:', err);
             setReservationStats([]);
             setReservationSummary({
-                total: 0,
-                confirmed: 0,
-                pending: 0,
-                cancelled: 0,
-                confirmation_rate: 0,
-                cancellation_rate: 0
+                today: { confirmed: 0, pending: 0, cancelled: 0, total: 0 },
+                monthly: { confirmed: 0, pending: 0, cancelled: 0, total: 0 },
+                avgConfirmationRate: 0,
+                avgCancellationRate: 0
             });
         }
     };
@@ -218,101 +278,84 @@ export default function Overview() {
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
-                            className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700"
+                            className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-all"
                         >
-                            <div className="flex flex-col gap-4 mb-6">
-                                <div className="flex items-center justify-between">
-                                    <h3 className="text-lg font-semibold dark:text-white">User Growth Analytics</h3>
-                                    <div className="text-sm text-gray-500 dark:text-gray-400">
-                                        <div className="flex items-center gap-2">
-                                            <span>Growth Trend:</span>
-                                            <span className={`font-medium ${(userGrowthSummary?.growthTrend || 0) >= 0
-                                                ? 'text-emerald-500'
-                                                : 'text-red-500'}`}>
-                                                {userGrowthSummary?.growthTrend?.toFixed(2) || '0.00'}%
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="grid grid-cols-3 gap-4 p-4 bg-gray-50 dark:bg-gray-700/30 rounded-lg">
-                                    <div>
-                                        <p className="text-sm text-gray-500 dark:text-gray-400">Total Users</p>
-                                        <p className="text-xl font-semibold text-gray-900 dark:text-white">
-                                            {userGrowthSummary.totalUsers || 0}
-                                        </p>
-                                    </div>
-                                    <div>
-                                        <p className="text-sm text-gray-500 dark:text-gray-400">Doctor/Patient Ratio</p>
-                                        <p className="text-xl font-semibold text-gray-900 dark:text-white">
-                                            {userGrowthSummary.doctorPatientRatio || 0}%
-                                        </p>
-                                    </div>
-                                    <div>
-                                        <p className="text-sm text-gray-500 dark:text-gray-400">3-Month Trend</p>
-                                        <p className="text-xl font-semibold capitalize text-gray-900 dark:text-white">
-                                            {userGrowthSummary.lastThreeMonths?.trend || 'stable'}
-                                        </p>
-                                    </div>
-                                </div>
+                            <div className="flex items-center justify-between mb-6">
+                                <h3 className="text-lg font-semibold dark:text-white flex items-center gap-2">
+                                    <ArrowTrendingUpIcon className="h-5 w-5 text-emerald-500" />
+                                    User Growth Analytics
+                                </h3>
                             </div>
                             <div className="h-80">
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <AreaChart data={monthlyUsers}>
+                                    <AreaChart
+                                        data={monthlyUsers}
+                                        margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                                    >
                                         <defs>
-                                            <linearGradient id="colorGrowth" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="5%" stopColor="#10B981" stopOpacity={0.8} />
+                                            <linearGradient id="colorUsers" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#10B981" stopOpacity={0.3} />
                                                 <stop offset="95%" stopColor="#10B981" stopOpacity={0} />
                                             </linearGradient>
+                                            <linearGradient id="colorGrowth" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3} />
+                                                <stop offset="95%" stopColor="#3B82F6" stopOpacity={0} />
+                                            </linearGradient>
                                         </defs>
-                                        <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
+                                        <CartesianGrid
+                                            strokeDasharray="3 3"
+                                            opacity={0.1}
+                                            vertical={false}
+                                            stroke="#E5E7EB"
+                                        />
                                         <XAxis
                                             dataKey="month"
-                                            tick={{ fill: '#6B7280' }}
-                                            tickFormatter={(value) => {
-                                                const date = new Date(value);
-                                                return date.toLocaleDateString('default', { month: 'short' });
-                                            }}
+                                            tick={{ fill: '#6B7280', fontSize: 12 }}
+                                            tickFormatter={(value) => new Date(value).toLocaleDateString('default', {
+                                                month: 'short',
+                                                year: '2-digit'
+                                            })}
+                                            axisLine={{ stroke: '#E5E7EB' }}
+                                            dy={10}
                                         />
                                         <YAxis
                                             yAxisId="left"
-                                            tick={{ fill: '#6B7280' }}
-                                            label={{ value: 'Users', angle: -90, position: 'insideLeft', fill: '#6B7280' }}
+                                            tick={{ fill: '#6B7280', fontSize: 12 }}
+                                            axisLine={{ stroke: '#E5E7EB' }}
+                                            tickLine={{ stroke: '#E5E7EB' }}
+                                            tickFormatter={(value) => value.toLocaleString()}
                                         />
                                         <YAxis
                                             yAxisId="right"
                                             orientation="right"
-                                            tick={{ fill: '#6B7280' }}
-                                            label={{ value: 'Growth %', angle: 90, position: 'insideRight', fill: '#6B7280' }}
+                                            tick={{ fill: '#6B7280', fontSize: 12 }}
+                                            axisLine={{ stroke: '#E5E7EB' }}
+                                            tickLine={{ stroke: '#E5E7EB' }}
+                                            domain={[-100, 100]}
+                                            tickFormatter={(value) => `${value}%`}
                                         />
-                                        <Tooltip
-                                            content={({ active, payload }) => {
-                                                if (active && payload && payload.length) {
-                                                    return (
-                                                        <div className="bg-white dark:bg-gray-800 p-4 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg">
-                                                            <p className="text-gray-600 dark:text-gray-400">{payload[0].payload.month}</p>
-                                                            <p className="font-semibold text-emerald-600">Users: {payload[0].payload.count}</p>
-                                                            <p className="font-semibold text-blue-600">Growth: {payload[0].payload.growthRate}%</p>
-                                                        </div>
-                                                    );
-                                                }
-                                                return null;
-                                            }}
-                                        />
+                                        <Tooltip content={CustomTooltip} />
                                         <Area
                                             yAxisId="left"
                                             type="monotone"
                                             dataKey="count"
+                                            name="Users"
                                             stroke="#10B981"
-                                            fill="url(#colorGrowth)"
-                                            dot={{ fill: '#10B981' }}
+                                            strokeWidth={3}
+                                            fill="url(#colorUsers)"
+                                            dot={{ fill: '#10B981', strokeWidth: 2, r: 4 }}
+                                            activeDot={{ r: 8, strokeWidth: 0 }}
                                         />
                                         <Area
                                             yAxisId="right"
                                             type="monotone"
                                             dataKey="growthRate"
+                                            name="Growth"
                                             stroke="#3B82F6"
-                                            fill="none"
-                                            dot={{ fill: '#3B82F6' }}
+                                            strokeWidth={2}
+                                            fill="url(#colorGrowth)"
+                                            dot={{ fill: '#3B82F6', strokeWidth: 2, r: 4 }}
+                                            activeDot={{ r: 8, strokeWidth: 0 }}
                                         />
                                     </AreaChart>
                                 </ResponsiveContainer>
@@ -355,115 +398,44 @@ export default function Overview() {
                             animate={{ opacity: 1, y: 0 }}
                             className="lg:col-span-2 bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700"
                         >
-                            <div className="flex flex-col gap-4 mb-6">
+                            <div className="flex flex-col gap-4">
                                 <div className="flex items-center justify-between">
-                                    <h3 className="text-lg font-semibold dark:text-white">Reservation Analytics</h3>
-                                    <div className="text-sm">
-                                        <div className="font-medium text-emerald-600">
-                                            Best Performance: {' '}
-                                            {reservationSummary.bestPerformance?.date &&
-                                                `${new Date(reservationSummary.bestPerformance.date).toLocaleDateString()} 
-                                                (${reservationSummary.bestPerformance.rate}% success)`
-                                            }
-                                        </div>
+                                    <h3 className="text-lg font-semibold dark:text-white flex items-center gap-2">
+                                        <ClipboardDocumentIcon className="h-5 w-5 text-blue-500" />
+                                        Reservation Analytics
+                                    </h3>
+                                    <div className="text-sm bg-emerald-50 dark:bg-emerald-500/10 px-3 py-1 rounded-full">
+                                        <span className="font-medium text-emerald-600 dark:text-emerald-400">
+                                            Success Rate: {reservationSummary.avgConfirmationRate}%
+                                        </span>
                                     </div>
                                 </div>
-                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 bg-gray-50 dark:bg-gray-700/30 rounded-lg">
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                                     <MetricCard
-                                        label="Success Rate"
-                                        value={`${reservationSummary.avgConfirmationRate || 0}%`}
+                                        label="Monthly Confirmed"
+                                        value={reservationSummary?.monthly?.confirmed || 0}
                                         colorClass="text-emerald-600"
+                                        bgClass="bg-emerald-50 dark:bg-emerald-500/10"
                                     />
                                     <MetricCard
-                                        label="Pending Rate"
-                                        value={`${reservationSummary.avgPendingRate || 0}%`}
+                                        label="Monthly Pending"
+                                        value={reservationSummary?.monthly?.pending || 0}
                                         colorClass="text-yellow-600"
+                                        bgClass="bg-yellow-50 dark:bg-yellow-500/10"
                                     />
                                     <MetricCard
-                                        label="Cancel Rate"
-                                        value={`${reservationSummary.avgCancellationRate || 0}%`}
+                                        label="Monthly Cancelled"
+                                        value={reservationSummary?.monthly?.cancelled || 0}
                                         colorClass="text-red-600"
+                                        bgClass="bg-red-50 dark:bg-red-500/10"
                                     />
                                     <MetricCard
-                                        label="Total"
-                                        value={reservationSummary.totalReservations || 0}
+                                        label="Monthly Total"
+                                        value={reservationSummary?.monthly?.total || 0}
                                         colorClass="text-blue-600"
+                                        bgClass="bg-blue-50 dark:bg-blue-500/10"
                                     />
                                 </div>
-                            </div>
-                            <div className="h-80">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart
-                                        data={reservationStats || []}
-                                        margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                                    >
-                                        <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
-                                        <XAxis
-                                            dataKey="date"
-                                            tick={{ fill: '#6B7280' }}
-                                            tickFormatter={(value) => new Date(value).toLocaleDateString('default', { month: 'short', day: 'numeric' })}
-                                        />
-                                        <YAxis
-                                            tick={{ fill: '#6B7280' }}
-                                            label={{
-                                                value: 'Number of Reservations',
-                                                angle: -90,
-                                                position: 'insideLeft',
-                                                fill: '#6B7280'
-                                            }}
-                                        />
-                                        <Tooltip
-                                            content={({ active, payload, label }) => {
-                                                if (active && payload && payload.length) {
-                                                    return (
-                                                        <div className="bg-white dark:bg-gray-800 p-4 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg">
-                                                            <p className="text-gray-600 dark:text-gray-400 mb-2">
-                                                                {new Date(label).toLocaleDateString()}
-                                                            </p>
-                                                            {payload.map((item, index) => (
-                                                                <p
-                                                                    key={index}
-                                                                    className={`${item.name === 'confirmed' ? 'text-emerald-600' :
-                                                                        item.name === 'pending' ? 'text-yellow-600' :
-                                                                            'text-red-600'
-                                                                        } font-medium`}
-                                                                >
-                                                                    {item.name.charAt(0).toUpperCase() + item.name.slice(1)}: {item.value}
-                                                                </p>
-                                                            ))}
-                                                            <p className="text-blue-600 font-medium mt-2">
-                                                                Total: {payload.reduce((sum, item) => sum + item.value, 0)}
-                                                            </p>
-                                                        </div>
-                                                    );
-                                                }
-                                                return null;
-                                            }}
-                                        />
-                                        <Legend />
-                                        <Bar
-                                            dataKey="confirmed"
-                                            stackId="a"
-                                            fill="#10B981"
-                                            name="Confirmed"
-                                            radius={[4, 4, 0, 0]}
-                                        />
-                                        <Bar
-                                            dataKey="pending"
-                                            stackId="a"
-                                            fill="#F59E0B"
-                                            name="Pending"
-                                            radius={[4, 4, 0, 0]}
-                                        />
-                                        <Bar
-                                            dataKey="cancelled"
-                                            stackId="a"
-                                            fill="#EF4444"
-                                            name="Cancelled"
-                                            radius={[4, 4, 0, 0]}
-                                        />
-                                    </BarChart>
-                                </ResponsiveContainer>
                             </div>
                         </motion.div>
                     </div>
@@ -483,8 +455,28 @@ export default function Overview() {
     );
 }
 
-const MetricCard = ({ label, value, colorClass }) => (
-    <div>
+const StatsCard = ({ label, value, trend, subtitle, icon, valueClassName = '' }) => (
+    <div className="flex flex-col gap-1">
+        <div className="flex items-center gap-2">
+            {icon}
+            <p className="text-sm text-gray-500 dark:text-gray-400">{label}</p>
+        </div>
+        <p className={`text-xl font-semibold ${valueClassName || 'dark:text-white'}`}>
+            {value}
+            {trend && (
+                <span className={`text-sm ml-2 ${trend >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                    ({trend >= 0 ? '+' : ''}{trend.toFixed(1)}%)
+                </span>
+            )}
+        </p>
+        {subtitle && (
+            <p className="text-xs text-gray-500 dark:text-gray-400">{subtitle}</p>
+        )}
+    </div>
+);
+
+const MetricCard = ({ label, value, colorClass, bgClass }) => (
+    <div className={`p-4 rounded-lg ${bgClass}`}>
         <p className="text-sm text-gray-500 dark:text-gray-400">{label}</p>
         <p className={`text-xl font-semibold ${colorClass}`}>
             {value}
