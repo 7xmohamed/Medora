@@ -4,6 +4,7 @@ import api from '../../../services/api';
 import { UserCircleIcon, TrashIcon, ShieldCheckIcon, ShieldExclamationIcon, XMarkIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import { motion, AnimatePresence } from 'framer-motion';
 import ConfirmationModal from '../../../components/shared/ConfirmationModal';
+import { toast } from 'react-toastify';
 
 export default function Doctors() {
     const [doctors, setDoctors] = useState([]);
@@ -84,7 +85,6 @@ export default function Doctors() {
                 { ...prev, is_verified: !currentStatus } : prev
             );
 
-            // Remove the alert and just close the modal
             setConfirmationModal(prev => ({ ...prev, isOpen: false }));
         } catch (err) {
             console.error('Error updating doctor status:', err);
@@ -96,11 +96,22 @@ export default function Doctors() {
 
     const handleDelete = async (doctorId) => {
         try {
-            await api.delete(`/admin/doctors/${doctorId}`);
-            setDoctors(doctors.filter(doctor => doctor.id !== doctorId));
-            setSelectedDoctor(null);
+            setIsSubmitting(true);
+            const response = await api.delete(`/admin/doctors/${doctorId}`);
+
+            if (response.data.success) {
+                setDoctors(prev => prev.filter(doctor => doctor.id !== doctorId));
+                setSelectedDoctor(null);
+                setConfirmationModal(prev => ({ ...prev, isOpen: false }));
+                toast.success('Doctor deleted successfully');
+            } else {
+                throw new Error(response.data.error || 'Failed to delete doctor');
+            }
         } catch (err) {
-            alert(err.response?.data?.message || 'Failed to delete doctor');
+            console.error('Error deleting doctor:', err);
+            toast.error(err.response?.data?.message || 'Failed to delete doctor');
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -123,11 +134,17 @@ export default function Doctors() {
         setConfirmationModal({
             isOpen: true,
             title: 'Delete Doctor',
-            message: 'Are you sure you want to delete this doctor? This action cannot be undone.',
+            message: 'Are you sure you want to delete this doctor? This will permanently remove all their data and cannot be undone.',
             action: () => handleDelete(doctorId),
             confirmText: 'Delete',
-            confirmButtonClass: 'bg-red-600 hover:bg-red-700'
+            confirmButtonClass: 'bg-red-600 hover:bg-red-700',
+            isLoading: isSubmitting
         });
+    };
+
+    const handleModalClose = () => {
+        setSelectedDoctor(null);
+        setConfirmationModal(prev => ({ ...prev, isOpen: false }));
     };
 
     const DoctorDetailsModal = () => (
@@ -401,18 +418,40 @@ export default function Doctors() {
                 </div>
             </div>
 
-            <AnimatePresence>
-                {selectedDoctor && <DoctorDetailsModal />}
-                <ConfirmationModal
-                    isOpen={confirmationModal.isOpen}
-                    onClose={() => setConfirmationModal(prev => ({ ...prev, isOpen: false }))}
-                    onConfirm={confirmationModal.action}
-                    title={confirmationModal.title}
-                    message={confirmationModal.message}
-                    confirmText={confirmationModal.confirmText}
-                    confirmButtonClass={confirmationModal.confirmButtonClass}
-                    isLoading={isSubmitting}
-                />
+            <AnimatePresence mode="sync">
+                <div className="relative">
+                    {selectedDoctor && (
+                        <motion.div
+                            key="doctor-modal"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="fixed inset-0 z-50"
+                        >
+                            <DoctorDetailsModal />
+                        </motion.div>
+                    )}
+                    {confirmationModal.isOpen && (
+                        <motion.div
+                            key="confirmation-modal"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="fixed inset-0 z-50"
+                        >
+                            <ConfirmationModal
+                                isOpen={confirmationModal.isOpen}
+                                onClose={handleModalClose}
+                                onConfirm={confirmationModal.action}
+                                title={confirmationModal.title}
+                                message={confirmationModal.message}
+                                confirmText={confirmationModal.confirmText}
+                                confirmButtonClass={confirmationModal.confirmButtonClass}
+                                isLoading={isSubmitting}
+                            />
+                        </motion.div>
+                    )}
+                </div>
             </AnimatePresence>
         </div>
     );

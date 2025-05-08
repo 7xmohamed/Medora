@@ -165,13 +165,54 @@ class AdminController extends Controller
         }
     }
 
+    public function deleteDoctor($id)
+    {
+        try {
+            \DB::beginTransaction();
+
+            $doctor = Doctor::with('user')->findOrFail($id);
+            $user = $doctor->user;
+
+            // Delete doctor files if they exist
+            if ($user->profile_picture) {
+                Storage::disk('public')->delete($user->profile_picture);
+            }
+            if ($user->id_card_front) {
+                Storage::disk('public')->delete('doctors/documents/' . $user->id_card_front);
+            }
+            if ($user->id_card_back) {
+                Storage::disk('public')->delete('doctors/documents/' . $user->id_card_back);
+            }
+
+            // Delete the doctor and associated user
+            $doctor->delete();
+            $user->delete();
+
+            \DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Doctor deleted successfully'
+            ]);
+        } catch (\Exception $e) {
+            \DB::rollback();
+            Log::error('Error deleting doctor: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to delete doctor',
+                'debug' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
+        }
+    }
+
     public function getReservationStats()
     {
         try {
             $endDate = now();
             $startDate = now()->subDays(30);
 
-            $stats = Reservation::whereBetween('created_at', [$startDate, $endDate])
+            // Get daily stats
+            $dailyStats = Reservation::whereBetween('created_at', [$startDate, $endDate])
                 ->selectRaw('DATE(created_at) as date')
                 ->selectRaw('COUNT(*) as total')
                 ->selectRaw('SUM(CASE WHEN reservation_status = "confirmed" THEN 1 ELSE 0 END) as confirmed')
@@ -179,58 +220,55 @@ class AdminController extends Controller
                 ->selectRaw('SUM(CASE WHEN reservation_status = "canceled" THEN 1 ELSE 0 END) as cancelled')
                 ->groupBy('date')
                 ->orderBy('date', 'ASC')
-                ->get()
-                ->map(function($stat) {
-                    return [
-                        'date' => $stat->date,
-                        'confirmed' => (int)$stat->confirmed,
-                        'pending' => (int)$stat->pending,
-                        'cancelled' => (int)$stat->cancelled,
-                        'total' => (int)$stat->total,
-                        'confirmationRate' => $stat->total > 0 ? 
-                            round(($stat->confirmed / $stat->total) * 100, 2) : 0,
-                        'pendingRate' => $stat->total > 0 ? 
-                            round(($stat->pending / $stat->total) * 100, 2) : 0,
-                        'cancellationRate' => $stat->total > 0 ? 
-                            round(($stat->cancelled / $stat->total) * 100, 2) : 0
-                    ];
-                });
+                ->get();
 
-            // Calculate overall statistics
+            // Fill in missing dates with zero values
+            $allDates = collect();
+            for ($date = clone $startDate; $date <= $endDate; $date->addDay()) {
+                $dateStr = $date->format('Y-m-d');
+                $stat = $dailyStats->firstWhere('date', $dateStr);
+                
+                $allDates->push([
+                    'date' => $dateStr,
+                    'confirmed' => (int)($stat->confirmed ?? 0),
+                    'pending' => (int)($stat->pending ?? 0),
+                    'cancelled' => (int)($stat->cancelled ?? 0),
+                    'total' => (int)($stat->total ?? 0)
+                ]);
+            }
+
+            // Calculate totals and rates
             $totals = [
-                'confirmed' => $stats->sum('confirmed'),
-                'pending' => $stats->sum('pending'),
-                'cancelled' => $stats->sum('cancelled'),
-                'total' => $stats->sum('total')
+                'confirmed' => $allDates->sum('confirmed'),
+                'pending' => $allDates->sum('pending'),
+                'cancelled' => $allDates->sum('cancelled'),
+                'total' => $allDates->sum('total')
             ];
 
-            $peakDay = $stats->sortByDesc('total')->first();
-            $bestPerformanceDay = $stats->sortByDesc('confirmationRate')->first();
-
             return response()->json([
-                'stats' => $stats,
-                'summary' => [
-                    'totalReservations' => $totals['total'],
-                    'totalConfirmed' => $totals['confirmed'],
-                    'totalPending' => $totals['pending'],
-                    'totalCancelled' => $totals['cancelled'],
-                    'avgConfirmationRate' => $totals['total'] > 0 ? 
-                        round(($totals['confirmed'] / $totals['total']) * 100, 2) : 0,
-                    'avgCancellationRate' => $totals['total'] > 0 ? 
-                        round(($totals['cancelled'] / $totals['total']) * 100, 2) : 0,
-                    'peakDay' => [
-                        'date' => $peakDay ? $peakDay['date'] : null,
-                        'total' => $peakDay ? $peakDay['total'] : 0
-                    ],
-                    'bestPerformance' => [
-                        'date' => $bestPerformanceDay ? $bestPerformanceDay['date'] : null,
-                        'rate' => $bestPerformanceDay ? $bestPerformanceDay['confirmationRate'] : 0
+                'success' => true,
+                'data' => [
+                    'daily' => $allDates,
+                    'summary' => [
+                        'total' => $totals['total'],
+                        'confirmed' => $totals['confirmed'],
+                        'pending' => $totals['pending'],
+                        'cancelled' => $totals['cancelled'],
+                        'confirmation_rate' => $totals['total'] > 0 ? 
+                            round(($totals['confirmed'] / $totals['total']) * 100, 2) : 0,
+                        'cancellation_rate' => $totals['total'] > 0 ? 
+                            round(($totals['cancelled'] / $totals['total']) * 100, 2) : 0
                     ]
                 ]
             ]);
+
         } catch (\Exception $e) {
             Log::error('Reservation stats error: ' . $e->getMessage());
-            return response()->json(['error' => 'Failed to fetch reservation statistics'], 500);
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to fetch reservation statistics',
+                'debug' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
         }
     }
 
@@ -258,60 +296,78 @@ class AdminController extends Controller
     {
         try {
             $endDate = now();
-            $startDate = now()->subMonths(12);
-            
-            $users = User::selectRaw('DATE_FORMAT(created_at, "%Y-%m") as month')
-                ->selectRaw('COUNT(*) as count')
+            $startDate = now()->subMonths(11);
+
+            // Get monthly stats
+            $monthlyStats = User::selectRaw('DATE_FORMAT(created_at, "%Y-%m") as month')
+                ->selectRaw('COUNT(*) as total')
                 ->selectRaw('COUNT(CASE WHEN role = "doctor" THEN 1 END) as doctors')
                 ->selectRaw('COUNT(CASE WHEN role = "patient" THEN 1 END) as patients')
-                ->whereBetween('created_at', [$startDate, $endDate])
+                ->whereBetween('created_at', [$startDate->startOfMonth(), $endDate])
                 ->groupBy('month')
                 ->orderBy('month', 'ASC')
                 ->get();
 
-            // Calculate derived metrics
-            $processedData = [];
-            $totalUsers = 0;
+            // Fill in missing months with zero values
+            $allMonths = collect();
+            $runningTotal = 0;
+            $totalDoctors = 0;
+            $totalPatients = 0;
             
-            foreach ($users as $index => $data) {
-                $previousCount = $index > 0 ? $processedData[$index - 1]['count'] : $data->count;
-                $growthRate = $previousCount > 0 ? 
-                    (($data->count - $previousCount) / $previousCount) * 100 : 0;
+            for ($date = clone $startDate; $date <= $endDate; $date->addMonth()) {
+                $monthKey = $date->format('Y-m');
+                $stat = $monthlyStats->firstWhere('month', $monthKey);
                 
-                $totalUsers += $data->count;
-                $doctorRatio = $data->count > 0 ? ($data->doctors / $data->count) * 100 : 0;
+                $monthDoctors = (int)($stat->doctors ?? 0);
+                $monthPatients = (int)($stat->patients ?? 0);
+                $monthTotal = $monthDoctors + $monthPatients;
                 
-                $processedData[] = [
-                    'month' => $data->month,
-                    'count' => $data->count,
-                    'doctors' => $data->doctors,
-                    'patients' => $data->patients,
-                    'growthRate' => round($growthRate, 2),
-                    'doctorRatio' => round($doctorRatio, 2),
-                    'runningTotal' => $totalUsers
-                ];
+                $runningTotal += $monthTotal;
+                $totalDoctors += $monthDoctors;
+                $totalPatients += $monthPatients;
+                
+                $previousMonth = $allMonths->last();
+                $growthRate = $previousMonth ? 
+                    ($monthTotal - $previousMonth['total']) / max($previousMonth['total'], 1) * 100 : 0;
+
+                $allMonths->push([
+                    'month' => $monthKey,
+                    'total' => $monthTotal,
+                    'doctors' => $monthDoctors,
+                    'patients' => $monthPatients,
+                    'growth_rate' => round($growthRate, 2),
+                    'running_total' => $runningTotal
+                ]);
             }
 
             // Calculate trends
-            $recentGrowth = array_slice($processedData, -3);
-            $growthTrend = collect($recentGrowth)->avg('growthRate');
+            $lastThreeMonths = $allMonths->take(-3);
+            $avgGrowthRate = $lastThreeMonths->avg('growth_rate');
 
             return response()->json([
-                'users' => $processedData,
-                'summary' => [
-                    'totalUsers' => $totalUsers,
-                    'averageGrowth' => round(collect($processedData)->avg('growthRate'), 2),
-                    'latestMonthGrowth' => end($processedData)['growthRate'],
-                    'growthTrend' => round($growthTrend, 2),
-                    'doctorPatientRatio' => round(($users->sum('doctors') / $users->sum('patients')) * 100, 2),
-                    'lastThreeMonths' => [
-                        'growth' => $recentGrowth,
-                        'trend' => $growthTrend >= 0 ? 'increasing' : 'decreasing'
+                'success' => true,
+                'data' => [
+                    'users' => $allMonths,
+                    'summary' => [
+                        'totalUsers' => $runningTotal,
+                        'totalDoctors' => $totalDoctors,
+                        'totalPatients' => $totalPatients,
+                        'averageGrowth' => round($avgGrowthRate, 2),
+                        'lastMonthGrowth' => $allMonths->last()['growth_rate'],
+                        'growthTrend' => $avgGrowthRate,
+                        'doctorPatientRatio' => $totalPatients > 0 ? 
+                            round(($totalDoctors / $totalPatients) * 100, 2) : 0
                     ]
                 ]
             ]);
+
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            Log::error('Monthly users stats error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to fetch user statistics',
+                'debug' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
         }
     }
 

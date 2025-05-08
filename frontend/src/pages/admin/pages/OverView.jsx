@@ -84,10 +84,23 @@ export default function Overview() {
     const fetchReservationStats = async () => {
         try {
             const response = await api.get('/admin/reservation-stats');
-            setReservationStats(response.data.stats);
-            setReservationSummary(response.data.summary);
+            if (response.data.success) {
+                setReservationStats(response.data.data.daily || []);
+                setReservationSummary(response.data.data.summary || {});
+            } else {
+                throw new Error(response.data.error || 'Failed to fetch stats');
+            }
         } catch (err) {
             console.error('Failed to fetch reservation stats:', err);
+            setReservationStats([]);
+            setReservationSummary({
+                total: 0,
+                confirmed: 0,
+                pending: 0,
+                cancelled: 0,
+                confirmation_rate: 0,
+                cancellation_rate: 0
+            });
         }
     };
 
@@ -103,10 +116,32 @@ export default function Overview() {
     const fetchMonthlyUsers = async () => {
         try {
             const response = await api.get('/admin/monthly-users');
-            setMonthlyUsers(response.data.users);
-            setUserGrowthSummary(response.data.summary);
+            if (response.data.success) {
+                setMonthlyUsers(response.data.data.users || []);
+                setUserGrowthSummary(response.data.data.summary || {
+                    totalUsers: 0,
+                    totalDoctors: 0,
+                    totalPatients: 0,
+                    averageGrowth: 0,
+                    lastMonthGrowth: 0,
+                    growthTrend: 0,
+                    doctorPatientRatio: 0
+                });
+            } else {
+                throw new Error(response.data.error || 'Failed to fetch data');
+            }
         } catch (err) {
             console.error('Failed to fetch monthly users:', err);
+            setMonthlyUsers([]);
+            setUserGrowthSummary({
+                totalUsers: 0,
+                totalDoctors: 0,
+                totalPatients: 0,
+                averageGrowth: 0,
+                lastMonthGrowth: 0,
+                growthTrend: 0,
+                doctorPatientRatio: 0
+            });
         }
     };
 
@@ -191,10 +226,10 @@ export default function Overview() {
                                     <div className="text-sm text-gray-500 dark:text-gray-400">
                                         <div className="flex items-center gap-2">
                                             <span>Growth Trend:</span>
-                                            <span className={`font-medium ${userGrowthSummary.growthTrend >= 0
+                                            <span className={`font-medium ${(userGrowthSummary?.growthTrend || 0) >= 0
                                                 ? 'text-emerald-500'
                                                 : 'text-red-500'}`}>
-                                                {userGrowthSummary.growthTrend}%
+                                                {userGrowthSummary?.growthTrend?.toFixed(2) || '0.00'}%
                                             </span>
                                         </div>
                                     </div>
@@ -389,8 +424,8 @@ export default function Overview() {
                                                                 <p
                                                                     key={index}
                                                                     className={`${item.name === 'confirmed' ? 'text-emerald-600' :
-                                                                            item.name === 'pending' ? 'text-yellow-600' :
-                                                                                'text-red-600'
+                                                                        item.name === 'pending' ? 'text-yellow-600' :
+                                                                            'text-red-600'
                                                                         } font-medium`}
                                                                 >
                                                                     {item.name.charAt(0).toUpperCase() + item.name.slice(1)}: {item.value}
