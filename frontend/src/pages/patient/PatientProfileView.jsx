@@ -246,14 +246,13 @@ export default function PatientProfileView() {
                     autoClose: 3000
                 });
 
-                if (response.data.reservation_price) {
-                    toast.info(`Amount refunded: $${response.data.reservation_price}`, {
+                // Show refund info if present
+                if (response.data.data && response.data.data.refunded_amount) {
+                    toast.info(`Amount refunded: $${response.data.data.refunded_amount}`, {
                         position: "top-right",
                         autoClose: 5000
                     });
                 }
-
-                setDeleteModal({ isOpen: false, reservationId: null });
             }
         } catch (error) {
             console.error('Cancel error:', error);

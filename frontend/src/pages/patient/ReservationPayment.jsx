@@ -88,14 +88,12 @@ const ReservationPayment = () => {
     const today = new Date();
     const selectedDate = new Date(reservation.date);
 
-    // If date is in the future, slot is not past
     if (selectedDate.getDate() > today.getDate() ||
       selectedDate.getMonth() > today.getMonth() ||
       selectedDate.getFullYear() > today.getFullYear()) {
       return false;
     }
 
-    // If same day, check if time has passed
     if (selectedDate.getDate() === today.getDate() &&
       selectedDate.getMonth() === today.getMonth() &&
       selectedDate.getFullYear() === today.getFullYear()) {
@@ -103,14 +101,18 @@ const ReservationPayment = () => {
       const slotTime = new Date();
       slotTime.setHours(hours, minutes, 0);
 
-      // Add 30 minutes buffer for booking
       const currentTime = new Date();
       currentTime.setMinutes(currentTime.getMinutes() + 30);
 
       return slotTime < currentTime;
     }
 
-    return true; // Past date
+    return true;
+  };
+
+  const isTimeSlotUnavailable = (slot) => {
+    const timeWithSeconds = `${slot}:00`;
+    return bookedSlots.includes(timeWithSeconds) || isTimeSlotPast(slot);
   };
 
   useEffect(() => {
@@ -154,7 +156,6 @@ const ReservationPayment = () => {
     const selectedDay = new Date(reservation.date).getDay();
     const dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][selectedDay];
 
-    // Find availability for the selected day
     const availability = doctor.availabilities.find(
       avail => avail.day_of_week.toLowerCase() === dayName.toLowerCase()
     );
@@ -172,17 +173,14 @@ const ReservationPayment = () => {
     const start = new Date(`2000/01/01 ${startTime}`);
     const end = new Date(`2000/01/01 ${endTime}`);
 
-    // Ensure we round to the nearest 30 minutes for the start time
     const roundedStart = new Date(start);
     roundedStart.setMinutes(Math.ceil(start.getMinutes() / 30) * 30);
 
-    // End time should be 30 minutes before actual end
     const lastSlot = new Date(end);
     lastSlot.setMinutes(end.getMinutes() - 30);
 
     let current = roundedStart;
     while (current <= lastSlot) {
-      // Format time as HH:mm
       const timeStr = `${String(current.getHours()).padStart(2, '0')}:${String(current.getMinutes()).padStart(2, '0')}`;
       slots.push(timeStr);
       current = new Date(current.getTime() + 30 * 60000);
@@ -437,20 +435,22 @@ const ReservationPayment = () => {
                           {availableSlots.map((slot) => {
                             const timeWithSeconds = `${slot}:00`;
                             const isBooked = bookedSlots.includes(timeWithSeconds);
+                            const isPast = isTimeSlotPast(slot);
+                            const isUnavailable = isBooked || isPast;
                             const bookedSlotData = bookedSlotsData.find(bs => bs.time === timeWithSeconds);
 
                             return (
                               <button
                                 key={slot}
                                 type="button"
-                                onClick={() => !isBooked && handleChange('time', slot)}
-                                disabled={isBooked}
+                                onClick={() => !isUnavailable && handleChange('time', slot)}
+                                disabled={isUnavailable}
                                 className={`
                                         relative flex flex-col items-center justify-center
                                         py-3 px-4 rounded-lg border text-sm
                                         transition-all duration-200
-                                        ${isBooked
-                                    ? 'cursor-not-allowed border-gray-300 bg-gray-100 dark:border-gray-600 dark:bg-gray-800'
+                                        ${isUnavailable
+                                    ? 'cursor-not-allowed border-gray-300 bg-gray-200 dark:border-gray-700 dark:bg-gray-800 text-gray-400 dark:text-gray-500'
                                     : reservation.time === timeWithSeconds
                                       ? 'border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400'
                                       : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50 dark:border-gray-700 dark:hover:border-gray-600 dark:hover:bg-gray-700'
@@ -458,25 +458,25 @@ const ReservationPayment = () => {
                                     `}
                               >
                                 <div className="relative z-10 flex flex-col items-center">
-                                  <span className={`mb-1 ${isBooked ? 'text-gray-400 dark:text-gray-500' : 'text-gray-900 dark:text-white'}`}>
+                                  <span className={`mb-1 ${isUnavailable ? 'text-gray-400 dark:text-gray-500' : 'text-gray-900 dark:text-white'}`}>
                                     {formatTime(slot)}
                                   </span>
-
-                                  {isBooked && (
+                                  {isUnavailable && (
                                     <div className="flex items-center space-x-1">
                                       <FiLock className="w-4 h-4 text-gray-400 dark:text-gray-500" />
                                       <span className="text-xs font-medium text-gray-400 dark:text-gray-500">
-                                        {bookedSlotData?.status === 'confirmed' ? "Booked" : "Pending"}
+                                        {isBooked
+                                          ? (bookedSlotData?.status === 'confirmed' ? "Booked" : "Pending")
+                                          : "Closed"}
                                       </span>
                                     </div>
                                   )}
                                 </div>
-
-                                {isBooked && (
+                                {isUnavailable && (
                                   <div
                                     className={`
                                                 absolute inset-0 rounded-lg
-                                                bg-gray-100/90 dark:bg-gray-800/90 backdrop-blur-[1px]'
+                                                bg-gray-200/90 dark:bg-gray-800/90 backdrop-blur-[1px]
                                             `}
                                   ></div>
                                 )}
@@ -525,7 +525,6 @@ const ReservationPayment = () => {
                   <h3 className="text-lg font-semibold">Confirm Reservation</h3>
                 </div>
                 <div className="p-6">
-                  {/* Reservation Summary */}
                   <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
                     <h4 className="text-lg font-medium mb-4">Reservation Summary</h4>
                     <div className="space-y-3">

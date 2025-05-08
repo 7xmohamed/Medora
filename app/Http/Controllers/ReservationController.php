@@ -353,35 +353,40 @@ class ReservationController extends Controller
     {
         DB::beginTransaction();
         try {
-            $reservation = Reservation::with(['doctor', 'patient'])->findOrFail($reservationId);
-            
-            // ...existing authorization checks...
+            $reservation = Reservation::with(['doctor', 'patient'])->find($reservationId);
+
+            if (!$reservation) {
+                DB::rollBack();
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Reservation not found'
+                ], 404);
+            }
+
+            if (!$reservation->doctor || !$reservation->patient) {
+                DB::rollBack();
+                \Log::error('Cancel reservation failed: doctor or patient missing', [
+                    'reservation_id' => $reservationId,
+                    'doctor' => $reservation->doctor,
+                    'patient' => $reservation->patient,
+                ]);
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Doctor or patient information missing for this reservation'
+                ], 500);
+            }
 
             $doctor = $reservation->doctor;
-            $currentRevenue = $doctor->total_revenue;
-            $currentMonthlyRevenue = $doctor->monthly_revenue;
-            
-            // Check if reservation is from current month
-            $isCurrentMonth = Carbon::parse($reservation->created_at)->month === now()->month;
-            
-            // Update revenues
-            DB::update("
-                UPDATE doctors 
-                SET total_revenue = GREATEST(total_revenue - ?, 0),
-                    monthly_revenue = CASE 
-                        WHEN ? THEN GREATEST(monthly_revenue - ?, 0)
-                        ELSE monthly_revenue 
-                    END
-                WHERE id = ?
-            ", [$reservation->price, $isCurrentMonth, $reservation->price, $doctor->id]);
+            $currentRevenue = $doctor->total_revenue ?? 0;
+            $currentMonthlyRevenue = $doctor->monthly_revenue ?? 0;
 
-            // Update reservation status
+            $isCurrentMonth = Carbon::parse($reservation->created_at)->month === now()->month;
+
             $reservation->update([
                 'reservation_status' => 'canceled',
                 'updated_at' => now()
             ]);
 
-            // Create refund record
             if ($reservation->payment_status === 'paid') {
                 PaymentRefund::create([
                     'reservation_id' => $reservation->id,
@@ -393,7 +398,6 @@ class ReservationController extends Controller
                 ]);
             }
 
-            // Reload doctor to get updated values
             $doctor->refresh();
 
             DB::commit();
@@ -410,17 +414,16 @@ class ReservationController extends Controller
                     'refunded_amount' => $reservation->price
                 ]
             ]);
-
         } catch (\Exception $e) {
             DB::rollBack();
             \Log::error('Cancellation failed', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
-            
             return response()->json([
                 'status' => 'error',
-                'message' => 'Failed to cancel reservation'
+                'message' => 'Failed to cancel reservation',
+                'details' => $e->getMessage()
             ], 500);
         }
     }
