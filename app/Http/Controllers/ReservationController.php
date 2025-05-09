@@ -82,6 +82,53 @@ class ReservationController extends Controller
         }
     }
 
+
+    public function getSlots($doctorId)
+    {
+        $reservations = Reservation::where('doctor_id', $doctorId)
+            ->whereIn('reservation_status', ['pending', 'confirmed'])
+            ->orderBy('reservation_date')
+            ->orderBy('reservation_time')
+            ->get(['reservation_date', 'reservation_time', 'reservation_status']);
+
+        $slotsByDate = [];
+
+        foreach ($reservations as $reservation) {
+            // Format date as Y-m-d
+            $date = $reservation->reservation_date instanceof \Carbon\Carbon
+                ? $reservation->reservation_date->format('Y-m-d')
+                : (is_string($reservation->reservation_date)
+                    ? (new \Carbon\Carbon($reservation->reservation_date))->format('Y-m-d')
+                    : (string)$reservation->reservation_date);
+
+            // Extract only HH:MM from reservation_time
+            if ($reservation->reservation_time instanceof \Carbon\Carbon) {
+                $time = $reservation->reservation_time->format('H:i');
+            } else {
+                // Handles string like '2025-05-09T10:30:00.000000Z' or '10:30:00'
+                try {
+                    $time = \Carbon\Carbon::parse($reservation->reservation_time)->format('H:i');
+                } catch (\Exception $e) {
+                    // fallback to original value if parse fails
+                    $time = $reservation->reservation_time;
+                }
+            }
+
+            if (!isset($slotsByDate[$date])) {
+                $slotsByDate[$date] = [];
+            }
+            $slotsByDate[$date][] = [
+                'time' => $time,
+                'status' => $reservation->reservation_status
+            ];
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $slotsByDate
+        ]);
+    }
+
     public function createReservation(Request $request)
     {
         try {

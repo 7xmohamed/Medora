@@ -102,7 +102,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('reservations/booked-slots/{doctorId}', [ReservationController::class, 'getBookedSlots']);
         Route::post('/upload-lab-result', [FileController::class, 'uploadLabResult']);
         Route::delete('/delete-lab-result/{id}', [FileController::class, 'deleteLabResult']);
-
+        Route::get('/slots/{doctorId}', [ReservationController::class, 'getSlots']);
     });
 
     // Lab Results routes

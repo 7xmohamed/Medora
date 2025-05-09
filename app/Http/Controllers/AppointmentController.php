@@ -26,6 +26,8 @@ class AppointmentController extends Controller
             'patient_phone' => $reservation->patient->user->phone,
             'doctor_phone' => $reservation->doctor->user->phone,
             'doctor_email' => $reservation->doctor->user->email,
+            'doctor_image' => $reservation->doctor->user->profile_picture,
+            'patient_image'=> $reservation->patient->user->profile_picture,
             'patient_gender' => $reservation->patient->gender,
             'patient_age' => $reservation->patient->date_of_birth,
             'specialization' => $reservation->doctor->speciality,
@@ -38,10 +40,25 @@ class AppointmentController extends Controller
             'status' => $reservation->reservation_status,
             'location' => $reservation->doctor->location,
         ];
-        return response()->json([
-            'status' => 'success',
-            'data' => $data
-        ]);
+        if ($user->role == 'doctor' && $reservation->doctor_id == $user->doctor->id) {
+           
+            return response()->json([
+                'status' => 'success',
+                'data' => $data
+            ]);
+        } else if ($user->role == 'patient' && $reservation->patient_id == $user->patient->id) {
+            
+            return response()->json([
+                'status' => 'success',
+                'data' => $data
+            ]);
+        }else {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Unauthorized'
+            ], 403);
+        }
+
     }
 
     public function role(Request $request)

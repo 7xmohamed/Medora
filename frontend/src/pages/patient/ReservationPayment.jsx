@@ -1,4 +1,3 @@
-/* eslint-disable no-unused-vars */
 import React, { useState, useEffect } from 'react';
 import {
   FiClock, FiCheckCircle,
@@ -25,6 +24,13 @@ const ReservationPayment = () => {
     paymentMethod: 'credit_card',
     price: null
   });
+  const [paymentDetails, setPaymentDetails] = useState({
+    cardNumber: '',
+    expiryDate: '',
+    cvc: '',
+    cardHolderName: ''
+  });
+  const [cardType, setCardType] = useState(null);
   const [DoctorReservations, setDoctorReservations] = useState([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
@@ -32,6 +38,54 @@ const ReservationPayment = () => {
   const [bookedSlots, setBookedSlots] = useState([]);
   const [bookedSlotsData, setBookedSlotsData] = useState([]);
   const [currentStep, setCurrentStep] = useState(1);
+  const [allBookedSlotsByDate, setAllBookedSlotsByDate] = useState({
+    "2025-05-06": [
+        {
+            "time": "10:30",
+            "status": "confirmed"
+        }
+    ],
+    "2025-05-07": [
+        {
+            "time": "16:00",
+            "status": "confirmed"
+        }
+    ],
+    "2025-05-08": [
+        {
+            "time": "09:45",
+            "status": "confirmed"
+        },
+        {
+            "time": "10:00",
+            "status": "pending"
+        }
+    ],
+    "2025-05-12": [
+        {
+            "time": "08:00",
+            "status": "pending"
+        },
+        {
+            "time": "10:00",
+            "status": "pending"
+        },
+        {
+            "time": "10:30",
+            "status": "pending"
+        },
+        {
+            "time": "11:00",
+            "status": "pending"
+        }
+    ],
+    "2025-05-14": [
+        {
+            "time": "14:00",
+            "status": "confirmed"
+        }
+    ]
+});
 
   const goToNextStep = () => {
     if (!reservation.date || !reservation.time || !reservation.reason) {
@@ -81,6 +135,52 @@ const ReservationPayment = () => {
       ...prev,
       [field]: value,
       ...(field === 'date' ? { time: '' } : {})
+    }));
+  };
+
+  const handlePaymentDetailsChange = (field, value) => {
+    if (field === 'cardNumber') {
+      // Detect card type based on first digits
+      const cleanedValue = value.replace(/\s+/g, '');
+      
+      // Visa: starts with 4
+      if (/^4/.test(cleanedValue)) {
+        setCardType('visa');
+      } 
+      // Mastercard: starts with 51-55 or 2221-2720
+      else if (/^5[1-5]/.test(cleanedValue) || /^2[2-7]/.test(cleanedValue)) {
+        setCardType('mastercard');
+      } 
+      // American Express: starts with 34 or 37
+      else if (/^3[47]/.test(cleanedValue)) {
+        setCardType('amex');
+      } 
+      else {
+        setCardType(null);
+      }
+      
+      // Format card number with spaces every 4 digits
+      if (cleanedValue.length > 0) {
+        const formatted = cleanedValue.match(/.{1,4}/g)?.join(' ') || cleanedValue;
+        value = formatted;
+      }
+    } else if (field === 'expiryDate') {
+      // Format expiry date as MM/YY
+      const cleanedValue = value.replace(/\D/g, '');
+      if (cleanedValue.length >= 3) {
+        value = `${cleanedValue.slice(0, 2)}/${cleanedValue.slice(2, 4)}`;
+      } else {
+        value = cleanedValue;
+      }
+    } else if (field === 'cvc') {
+      // Limit CVC length based on card type
+      const maxLength = cardType === 'amex' ? 4 : 3;
+      value = value.replace(/\D/g, '').slice(0, maxLength);
+    }
+    
+    setPaymentDetails(prev => ({
+      ...prev,
+      [field]: value
     }));
   };
 
@@ -156,16 +256,21 @@ const ReservationPayment = () => {
     const selectedDay = new Date(reservation.date).getDay();
     const dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][selectedDay];
 
-    const availability = doctor.availabilities.find(
+    // Récupérer toutes les disponibilités pour ce jour
+    const availabilities = doctor.availabilities.filter(
       avail => avail.day_of_week.toLowerCase() === dayName.toLowerCase()
     );
 
-    if (availability) {
-      const slots = generateTimeSlots(availability.start_time, availability.end_time);
-      setAvailableSlots(slots);
-    } else {
-      setAvailableSlots([]);
-    }
+    // Générer et fusionner tous les créneaux horaires pour ce jour
+    let slots = [];
+    availabilities.forEach(availability => {
+      slots = slots.concat(generateTimeSlots(availability.start_time, availability.end_time));
+    });
+
+    // Supprimer les doublons et trier les créneaux
+    slots = Array.from(new Set(slots)).sort();
+
+    setAvailableSlots(slots);
   }, [reservation.date, doctor]);
 
   const generateTimeSlots = (startTime, endTime) => {
@@ -209,11 +314,28 @@ const ReservationPayment = () => {
     fetchBookedSlots();
   }, [reservation.date, doctorId]);
 
-  const validatePayment = (formData) => {
+  // Fetch all booked slots for all dates (for disabling in the slots view)
+  useEffect(() => {
+    const fetchAllBookedSlots = async () => {
+      try {
+        const response = await api.get(`/patient/slots/${doctorId}`);
+        if (response.data.status === 'success') {
+          setAllBookedSlotsByDate(response.data.data || {});
+        }
+      } catch (err) {
+        console.error('Failed to fetch all booked slots:', err);
+        setError('Failed to check availability. Please try again.');
+      }
+    };
+    fetchAllBookedSlots();
+  }, []);
+
+  const validatePayment = () => {
     if (reservation.paymentMethod === 'credit_card' || reservation.paymentMethod === 'debit_card') {
-      const cardNumber = formData.get('cardNumber')?.replace(/\s/g, '');
-      const expiryDate = formData.get('expiryDate');
-      const cvc = formData.get('cvc');
+      const cardNumber = paymentDetails.cardNumber.replace(/\s/g, '');
+      const expiryDate = paymentDetails.expiryDate;
+      const cvc = paymentDetails.cvc;
+      const cardHolderName = paymentDetails.cardHolderName;
 
       if (!cardNumber || !/^\d{13,16}$/.test(cardNumber)) {
         setError('Please enter a valid card number');
@@ -225,13 +347,27 @@ const ReservationPayment = () => {
         return false;
       }
 
-      const isAmex = /^3[47]/.test(cardNumber);
+      const [month, year] = expiryDate.split('/');
+      const currentYear = new Date().getFullYear() % 100;
+      const currentMonth = new Date().getMonth() + 1;
+
+      if (parseInt(year) < currentYear || (parseInt(year) === currentYear && parseInt(month) < currentMonth)) {
+        setError('Card has expired');
+        return false;
+      }
+
+      const isAmex = cardType === 'amex';
       if (isAmex && (!cvc || !/^\d{4}$/.test(cvc))) {
         setError('Please enter a valid 4-digit CVC for American Express');
         return false;
       }
       if (!isAmex && (!cvc || !/^\d{3}$/.test(cvc))) {
         setError('Please enter a valid 3-digit CVC');
+        return false;
+      }
+
+      if (!cardHolderName || cardHolderName.trim().length < 3) {
+        setError('Please enter the cardholder name');
         return false;
       }
     }
@@ -247,6 +383,11 @@ const ReservationPayment = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    
+    if (!validatePayment()) {
+      return;
+    }
+
     setIsProcessing(true);
 
     try {
@@ -266,7 +407,12 @@ const ReservationPayment = () => {
         reservation_date: reservation.date,
         reservation_time: reservationTime,
         reason: reservation.reason,
-        price: doctor.price
+        price: doctor.price,
+        payment_method: reservation.paymentMethod,
+        payment_details: {
+          last_four: paymentDetails.cardNumber.slice(-4),
+          card_type: cardType
+        }
       };
 
       const response = await api.post('/patient/reservations', reservationData);
@@ -434,28 +580,34 @@ const ReservationPayment = () => {
                         <div className="grid grid-cols-3 gap-2">
                           {availableSlots.map((slot) => {
                             const timeWithSeconds = `${slot}:00`;
-                            const isBooked = bookedSlots.includes(timeWithSeconds);
+                            const allBookedSlots = allBookedSlotsByDate[reservation.date] || [];
+                            const isBooked = allBookedSlots.some(bs => bs.time === slot); // NOTE: remove ":00" if your DB uses "HH:mm"
                             const isPast = isTimeSlotPast(slot);
-                            const isUnavailable = isBooked || isPast;
-                            const bookedSlotData = bookedSlotsData.find(bs => bs.time === timeWithSeconds);
-
+                            const isUnavailable = isPast || isBooked;
+                          
                             return (
                               <button
                                 key={slot}
                                 type="button"
-                                onClick={() => !isUnavailable && handleChange('time', slot)}
+                                onClick={() => {
+                                  if (isUnavailable) return;
+                                  setReservation(prev => ({
+                                    ...prev,
+                                    time: timeWithSeconds
+                                  }));
+                                }}
                                 disabled={isUnavailable}
                                 className={`
-                                        relative flex flex-col items-center justify-center
-                                        py-3 px-4 rounded-lg border text-sm
-                                        transition-all duration-200
-                                        ${isUnavailable
+                                  relative flex flex-col items-center justify-center
+                                  py-3 px-4 rounded-lg border text-sm
+                                  transition-all duration-200
+                                  ${isUnavailable
                                     ? 'cursor-not-allowed border-gray-300 bg-gray-200 dark:border-gray-700 dark:bg-gray-800 text-gray-400 dark:text-gray-500'
                                     : reservation.time === timeWithSeconds
                                       ? 'border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400'
                                       : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50 dark:border-gray-700 dark:hover:border-gray-600 dark:hover:bg-gray-700'
                                   }
-                                    `}
+                                `}
                               >
                                 <div className="relative z-10 flex flex-col items-center">
                                   <span className={`mb-1 ${isUnavailable ? 'text-gray-400 dark:text-gray-500' : 'text-gray-900 dark:text-white'}`}>
@@ -465,19 +617,14 @@ const ReservationPayment = () => {
                                     <div className="flex items-center space-x-1">
                                       <FiLock className="w-4 h-4 text-gray-400 dark:text-gray-500" />
                                       <span className="text-xs font-medium text-gray-400 dark:text-gray-500">
-                                        {isBooked
-                                          ? (bookedSlotData?.status === 'confirmed' ? "Booked" : "Pending")
-                                          : "Closed"}
+                                        {isPast ? 'Closed' : 'Booked'}
                                       </span>
                                     </div>
                                   )}
                                 </div>
                                 {isUnavailable && (
                                   <div
-                                    className={`
-                                                absolute inset-0 rounded-lg
-                                                bg-gray-200/90 dark:bg-gray-800/90 backdrop-blur-[1px]
-                                            `}
+                                    className="absolute inset-0 rounded-lg bg-gray-200/90 dark:bg-gray-800/90 backdrop-blur-[1px]"
                                   ></div>
                                 )}
                               </button>
@@ -487,6 +634,7 @@ const ReservationPayment = () => {
                       ) : (
                         <p className="text-gray-500 dark:text-gray-400">No available slots for this date</p>
                       )}
+
                     </div>
                   )}
 
@@ -521,33 +669,110 @@ const ReservationPayment = () => {
           ) : (
             <div className="lg:col-span-2">
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden">
-                <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                  <h3 className="text-lg font-semibold">Confirm Reservation</h3>
-                </div>
-                <div className="p-6">
-                  <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                    <h4 className="text-lg font-medium mb-4">Reservation Summary</h4>
-                    <div className="space-y-3">
-                      <div className="flex justify-between">
-                        <span className="text-gray-600 dark:text-gray-300">Doctor:</span>
-                        <span className="font-medium">Dr. {doctor.user?.name || doctor.name}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600 dark:text-gray-300">Date:</span>
-                        <span className="font-medium">{new Date(reservation.date).toLocaleDateString()}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600 dark:text-gray-300">Time:</span>
-                        <span className="font-medium">{formatTime(reservation.time)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600 dark:text-gray-300">Consultation Fee:</span>
-                        <span className="font-medium text-lg">${doctor.price}</span>
-                      </div>
-                    </div>
+                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center">
+                    <button
+                      type="button"
+                      onClick={goToPreviousStep}
+                      className="flex items-center px-3 py-1 ml-2 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg font-medium transition-colors"
+                    >
+                      <FiArrowLeft className="mr-1" />
+                    </button>
+                    <h3 className="text-lg font-semibold mr-2">Payment</h3>
                   </div>
+                </div>
+                {/* Begin form for payment step */}
+                <form onSubmit={handleSubmit}>
+                  <div className="p-6">
+                    {/* ...existing payment method and details form... */}
+                    <div className="mb-6">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Payment Method
+                      </label>
+                      <select
+                        value={reservation.paymentMethod}
+                        onChange={e => setReservation(prev => ({ ...prev, paymentMethod: e.target.value }))}
+                        className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-2.5"
+                      >
+                        <option value="credit_card">Credit Card</option>
+                        <option value="debit_card">Debit Card</option>
+                      </select>
+                    </div>
+                    {reservation.paymentMethod === 'credit_card' || reservation.paymentMethod === 'debit_card' ? (
+                      <div className="mb-6 bg-gray-50 dark:bg-gray-700/30 p-4 rounded-lg">
+                        {/* ...existing card fields... */}
+                        <div className="mb-4">
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Card Number
+                          </label>
+                          <div className="relative">
+                            <input
+                              type="text"
+                              value={paymentDetails.cardNumber}
+                              onChange={(e) => handlePaymentDetailsChange('cardNumber', e.target.value)}
+                              placeholder="1234 5678 9012 3456"
+                              className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-2.5 pl-12"
+                              maxLength={19}
+                            />
+                            <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
+                              {cardType === 'visa' && (
+                                <img src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg" alt="Visa" className="h-6 w-6" />
+                              )}
+                              {cardType === 'mastercard' && (
+                                <img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" alt="Mastercard" className="h-6 w-6" />
+                              )}
+                              {cardType === 'amex' && (
+                                <img src="https://upload.wikimedia.org/wikipedia/commons/3/30/American_Express_logo.svg" alt="American Express" className="h-6 w-6" />
+                              )}
+                              {!cardType && (
+                                <FiCreditCard className="h-6 w-6 text-gray-400" />
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4 mb-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                              Expiry Date
+                            </label>
+                            <input
+                              type="text"
+                              value={paymentDetails.expiryDate}
+                              onChange={(e) => handlePaymentDetailsChange('expiryDate', e.target.value)}
+                              placeholder="MM/YY"
+                              className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-2.5"
+                              maxLength={5}
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                              CVC
+                            </label>
+                            <input
+                              type="text"
+                              value={paymentDetails.cvc}
+                              onChange={(e) => handlePaymentDetailsChange('cvc', e.target.value)}
+                              placeholder={cardType === 'amex' ? '4 digits' : '3 digits'}
+                              className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-2.5"
+                              maxLength={cardType === 'amex' ? 4 : 3}
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Cardholder Name
+                          </label>
+                          <input
+                            type="text"
+                            value={paymentDetails.cardHolderName}
+                            onChange={(e) => handlePaymentDetailsChange('cardHolderName', e.target.value)}
+                            placeholder="Name on card"
+                            className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-2.5"
+                          />
+                        </div>
+                      </div>
+                    ) : null}
 
-                  <form onSubmit={handleSubmit}>
                     {error && (
                       <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg flex items-start">
                         <FiAlertCircle className="h-5 w-5 text-red-500 dark:text-red-400 mt-0.5 mr-2" />
@@ -555,25 +780,33 @@ const ReservationPayment = () => {
                       </div>
                     )}
 
-                    <button
-                      type="submit"
-                      disabled={isProcessing}
-                      className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium disabled:opacity-70"
-                    >
-                      {isProcessing ? (
-                        <div className="flex items-center justify-center">
-                          <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                          </svg>
-                          Processing...
-                        </div>
-                      ) : (
-                        `Confirm & Pay $${doctor.price}`
-                      )}
-                    </button>
-                  </form>
-                </div>
+                    <div className="flex flex-col gap-2">
+                      <button
+                        type="submit"
+                        disabled={
+                          isProcessing ||
+                          !paymentDetails.cardNumber ||
+                          !paymentDetails.expiryDate ||
+                          !paymentDetails.cvc ||
+                          !paymentDetails.cardHolderName
+                        }
+                        className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium disabled:opacity-70"
+                      >
+                        {isProcessing ? (
+                          <div className="flex items-center justify-center">
+                            <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Processing...
+                          </div>
+                        ) : (
+                          `Confirm & Pay Dh${doctor.price}`
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </form>
               </div>
             </div>
           )}

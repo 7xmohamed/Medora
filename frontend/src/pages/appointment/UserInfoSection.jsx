@@ -37,7 +37,7 @@ const UserInfoSection = ({ role, appointmentData }) => {
       </div>
     );
   };
-
+  console.log(appointmentData);
   const DoctorInfo = ({ data }) => (
     <div className="flex-1">
       <h2 className="text-xl font-bold">{data.doctor_name}</h2>
@@ -98,7 +98,11 @@ const UserInfoSection = ({ role, appointmentData }) => {
       <div className="p-6 flex flex-col md:flex-row items-start md:items-center">
         <div className="mb-4 md:mb-0 md:mr-8">
           <UserAvatar 
-            image={role === 'patient' ? appointmentData.doctor_image : appointmentData.patient_image}
+            image={
+              role === 'patient'
+                ? (appointmentData.doctor_image ? `http://localhost:8000/storage/${appointmentData.doctor_image}` : null)
+                : (appointmentData.patient_image ? `http://localhost:8000/storage/${appointmentData.patient_image}` : null)
+            }
             name={role === 'patient' ? appointmentData.doctor_name : appointmentData.patient_name}
             isPatient={role === 'doctor'}
           />
