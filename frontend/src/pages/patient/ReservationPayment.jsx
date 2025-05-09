@@ -38,54 +38,7 @@ const ReservationPayment = () => {
   const [bookedSlots, setBookedSlots] = useState([]);
   const [bookedSlotsData, setBookedSlotsData] = useState([]);
   const [currentStep, setCurrentStep] = useState(1);
-  const [allBookedSlotsByDate, setAllBookedSlotsByDate] = useState({
-    "2025-05-06": [
-        {
-            "time": "10:30",
-            "status": "confirmed"
-        }
-    ],
-    "2025-05-07": [
-        {
-            "time": "16:00",
-            "status": "confirmed"
-        }
-    ],
-    "2025-05-08": [
-        {
-            "time": "09:45",
-            "status": "confirmed"
-        },
-        {
-            "time": "10:00",
-            "status": "pending"
-        }
-    ],
-    "2025-05-12": [
-        {
-            "time": "08:00",
-            "status": "pending"
-        },
-        {
-            "time": "10:00",
-            "status": "pending"
-        },
-        {
-            "time": "10:30",
-            "status": "pending"
-        },
-        {
-            "time": "11:00",
-            "status": "pending"
-        }
-    ],
-    "2025-05-14": [
-        {
-            "time": "14:00",
-            "status": "confirmed"
-        }
-    ]
-});
+  const [allBookedSlotsByDate, setAllBookedSlotsByDate] = useState({});
 
   const goToNextStep = () => {
     if (!reservation.date || !reservation.time || !reservation.reason) {

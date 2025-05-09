@@ -37,7 +37,7 @@ const UserInfoSection = ({ role, appointmentData }) => {
       </div>
     );
   };
-  console.log(appointmentData);
+
   const DoctorInfo = ({ data }) => (
     <div className="flex-1">
       <h2 className="text-xl font-bold">{data.doctor_name}</h2>
