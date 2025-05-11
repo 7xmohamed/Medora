@@ -91,6 +91,7 @@ const AppointmentDetails = () => {
           activeTab={activeTab} 
           setActiveTab={setActiveTab} 
           role={role} 
+          appointmentData={appointmentData}
         />
         
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden">
@@ -105,7 +106,7 @@ const AppointmentDetails = () => {
             />
           )}
 
-          {activeTab === 'notes' && (
+          {activeTab === 'notes' && appointmentData.reservation_status !== 'pending' && (
             <ClinicalNotesTab role={role} reservationId={appointmentData.id} />
           )}
         </div>

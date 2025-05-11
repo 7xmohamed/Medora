@@ -754,7 +754,7 @@ const ReservationPayment = () => {
                             Processing...
                           </div>
                         ) : (
-                          `Confirm & Pay Dh${doctor.price}`
+                          `Confirm & Pay ${doctor.price} Dh`
                         )}
                       </button>
                     </div>

@@ -158,6 +158,7 @@ class DoctorController extends Controller
                     ->count(),
                 'monthly_revenue' => $doctor->reservations()
                     ->where('payment_status', 'paid')
+                    ->where('reservation_status', 'confirmed')
                     ->whereMonth('created_at', now()->month)
                     ->sum('price'),
                 'completion_rate' => $doctor->reservations()
