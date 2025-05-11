@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Fragment } from 'react';
 import { FiUpload, FiFile, FiImage, FiX, FiDownload, FiFileText, FiTrash2 } from 'react-icons/fi';
+import { Dialog, Transition } from '@headlessui/react';
 import api from '../../services/api';
 
 const ClinicalNotesTab = ({ reservationId, role }) => {
@@ -18,6 +19,7 @@ const ClinicalNotesTab = ({ reservationId, role }) => {
     prescriptions: [],
     analysis_requests: []
   });
+  const [deleteModal, setDeleteModal] = useState({ isOpen: false, fileType: null, fileId: null });
 
   useEffect(() => {
     const fetchReports = async () => {
@@ -269,7 +271,7 @@ const ClinicalNotesTab = ({ reservationId, role }) => {
                       {/* Only show delete for non-patient */}
                       {role !== 'patient' && (
                         <button
-                          onClick={() => deleteFile('doctorReport', report.id)}
+                          onClick={() => setDeleteModal({ isOpen: true, fileType: 'doctorReport', fileId: report.id })}
                           className="text-red-500 hover:text-red-700 transition-colors"
                           title="Delete"
                         >
@@ -403,7 +405,7 @@ const ClinicalNotesTab = ({ reservationId, role }) => {
                       {/* Only show delete for non-patient */}
                       {role !== 'patient' && (
                         <button
-                          onClick={() => deleteFile('prescription', prescription.id)}
+                          onClick={() => setDeleteModal({ isOpen: true, fileType: 'prescription', fileId: prescription.id })}
                           className="text-red-500 hover:text-red-700 transition-colors"
                           title="Delete"
                         >
@@ -518,7 +520,7 @@ const ClinicalNotesTab = ({ reservationId, role }) => {
                       {/* Only show delete for non-patient */}
                       {role !== 'patient' && (
                         <button
-                          onClick={() => deleteFile('analysisRequest', analysis.id)}
+                          onClick={() => setDeleteModal({ isOpen: true, fileType: 'analysisRequest', fileId: analysis.id })}
                           className="text-red-500 hover:text-red-700 transition-colors"
                           title="Delete"
                         >
@@ -533,6 +535,66 @@ const ClinicalNotesTab = ({ reservationId, role }) => {
           )}
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <Transition appear show={deleteModal.isOpen} as={Fragment}>
+        <Dialog as="div" className="relative z-50" onClose={() => setDeleteModal({ isOpen: false, fileType: null, fileId: null })}>
+          <Transition.Child
+            as={Fragment}
+            enter="ease-out duration-300"
+            enterFrom="opacity-0 scale-95"
+            enterTo="opacity-100 scale-100"
+            leave="ease-in duration-200"
+            leaveFrom="opacity-100 scale-100"
+            leaveTo="opacity-0 scale-95"
+          >
+            <div className="fixed inset-0 bg-black bg-opacity-25" />
+          </Transition.Child>
+          <div className="fixed inset-0 flex items-center justify-center p-4">
+            <Transition.Child
+              as={Fragment}
+              enter="ease-out duration-300"
+              enterFrom="opacity-0 scale-95"
+              enterTo="opacity-100 scale-100"
+              leave="ease-in duration-200"
+              leaveFrom="opacity-100 scale-100"
+              leaveTo="opacity-0 scale-95"
+            >
+              <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white dark:bg-gray-800 p-6 text-left align-middle shadow-xl transition-all">
+                <Dialog.Title as="h3" className="text-lg font-medium leading-6 text-gray-900 dark:text-white">
+                  Delete File
+                </Dialog.Title>
+                <div className="mt-2">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    Are you sure you want to delete this file? This action cannot be undone.
+                  </p>
+                </div>
+                <div className="mt-6 flex justify-end space-x-3">
+                  <button
+                    type="button"
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 rounded-lg"
+                    onClick={() => setDeleteModal({ isOpen: false, fileType: null, fileId: null })}
+                  >
+                    Keep File
+                  </button>
+                  <button
+                    type="button"
+                    className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg"
+                    onClick={async () => {
+                      if (deleteModal.fileType && deleteModal.fileId) {
+                        await deleteFile(deleteModal.fileType, deleteModal.fileId);
+                      }
+                      setDeleteModal({ isOpen: false, fileType: null, fileId: null });
+                    }}
+                  >
+                    Yes, Delete
+                  </button>
+                </div>
+              </Dialog.Panel>
+            </Transition.Child>
+          </div>
+        </Dialog>
+      </Transition>
     </div>
   );
 };

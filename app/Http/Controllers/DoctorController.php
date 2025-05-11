@@ -137,7 +137,7 @@ class DoctorController extends Controller
             // Calculate statistics
             $stats = [
                 'today_appointments' => $doctor->reservations()
-                    ->whereDate('created_at', today())
+                    ->whereDate('reservation_date', today())
                     ->count(),
                 'total_patients' => $doctor->reservations()
                     ->distinct('patient_id')
@@ -154,12 +154,12 @@ class DoctorController extends Controller
                     ->count(),
                 // New statistics
                 'weekly_appointments' => $doctor->reservations()
-                    ->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()])
+                    ->whereBetween('reservation_date', [now()->startOfWeek(), now()->endOfWeek()])
                     ->count(),
                 'monthly_revenue' => $doctor->reservations()
                     ->where('payment_status', 'paid')
                     ->where('reservation_status', 'confirmed')
-                    ->whereMonth('created_at', now()->month)
+                    ->whereMonth('reservation_date', now()->month)
                     ->sum('price'),
                 'completion_rate' => $doctor->reservations()
                     ->where('reservation_status', 'completed')
@@ -169,23 +169,25 @@ class DoctorController extends Controller
             ];
 
             // Get upcoming appointments for the next 7 days
+            $startDate = now()->startOfDay();
+            $endDate = now()->addDays(6)->endOfDay();
             $upcomingAppointments = $doctor->reservations()
                 ->with('patient.user')
-                ->whereBetween('created_at', [now(), now()->addDays(7)])
-                ->orderBy('created_at', 'asc')
+                ->whereBetween('reservation_date', [$startDate, $endDate])
+                ->orderBy('reservation_date', 'asc')
                 ->get()
                 ->map(function($reservation) {
                     return [
                         'id' => $reservation->id,
                         'patient_name' => $reservation->patient->user->name,
-                        'date' => $reservation->created_at->format('Y-m-d'),
-                        'time' => $reservation->created_at->format('h:i A'),
+                        'date' => $reservation->reservation_date->format('Y-m-d'),
+                        'time' => $reservation->reservation_time->format('h:i A'),
                         'status' => $reservation->reservation_status,
                         'type' => $reservation->appointment_type ?? 'Consultation',
                         'patient_id' => $reservation->patient_id,
                         'price' => $reservation->price,
                         'is_new_patient' => !$reservation->patient->reservations()
-                            ->where('created_at', '<', $reservation->created_at)
+                            ->where('reservation_date', '<', $reservation->reservation_date)
                             ->exists()
                     ];
                 });
@@ -198,16 +200,16 @@ class DoctorController extends Controller
             // Get past appointments
             $pastAppointments = $doctor->reservations()
                 ->with('patient.user')
-                ->where('created_at', '<', now())
-                ->orderBy('created_at', 'desc')
+                ->where('reservation_date', '<', now())
+                ->orderBy('reservation_date', 'desc')
                 ->limit(10)
                 ->get()
                 ->map(function($reservation) {
                     return [
                         'id' => $reservation->id,
                         'patient_name' => $reservation->patient->user->name,
-                        'date' => $reservation->created_at->format('Y-m-d'),
-                        'time' => $reservation->created_at->format('h:i A'),
+                        'date' => $reservation->reservation_date->format('Y-m-d'),
+                        'time' => $reservation->reservation_date->format('h:i A'),
                         'status' => $reservation->reservation_status,
                         'type' => $reservation->appointment_type ?? 'Consultation',
                         'patient_id' => $reservation->patient_id,
@@ -218,14 +220,14 @@ class DoctorController extends Controller
             // Get recent patients
             $recentPatients = $doctor->reservations()
                 ->with('patient.user')
-                ->orderBy('created_at', 'desc')
+                ->orderBy('reservation_date', 'desc')
                 ->limit(5)
                 ->get()
                 ->map(function($reservation) {
                     return [
                         'id' => $reservation->patient_id,
                         'name' => $reservation->patient->user->name,
-                        'last_visit' => $reservation->created_at->format('Y-m-d'),
+                        'last_visit' => $reservation->reservation_date->format('Y-m-d'),
                         'total_visits' => $reservation->patient->reservations()->count(),
                         'status' => $reservation->reservation_status
                     ];
@@ -273,8 +275,8 @@ class DoctorController extends Controller
             // Calculate revenues
             $monthlyRevenue = $doctor->reservations()
                 ->where('payment_status', 'paid')
-                ->whereMonth('created_at', $today->month)
-                ->whereYear('created_at', $today->year)
+                ->whereMonth('reservation_date', $today->month)
+                ->whereYear('reservation_date', $today->year)
                 ->where('reservation_status', '!=', 'canceled')
                 ->sum('price');
 
@@ -578,7 +580,7 @@ class DoctorController extends Controller
                 ->firstOrFail();
 
             $appointments = $doctor->reservations()
-                ->orderBy('created_at', 'desc')
+                ->orderBy('reservation_date', 'desc')
                 ->get()
                 ->map(function($reservation) {
                     return [
@@ -586,8 +588,8 @@ class DoctorController extends Controller
                         'patient_name' => $reservation->patient->user->name,
                         'patient_email' => $reservation->patient->user->email,
                         'patient_phone' => $reservation->patient->user->phone,
-                        'date' => $reservation->created_at->format('Y-m-d'),
-                        'time' => $reservation->created_at->format('h:i A'),
+                        'date' => $reservation->reservation_date->format('Y-m-d'),
+                        'time' => $reservation->reservation_date->format('h:i A'),
                         'status' => $reservation->reservation_status,
                         'type' => $reservation->appointment_type ?? 'Consultation',
                         'price' => $reservation->price,

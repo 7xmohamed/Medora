@@ -576,15 +576,15 @@ export default function PatientProfileView() {
                                                 </div>
                                             </div>
                                             <div className="mt-3 flex justify-end space-x-2">
-                                                {(reservation.status === 'confirmed' || reservation.status === 'pending') &&
-                                                    !isWithin30Minutes(reservation.date_time) && (
-                                                        <button
-                                                            className="text-sm px-3 py-1 bg-red-100 hover:bg-red-200 text-red-800 rounded-full transition-colors dark:bg-red-900/30 dark:hover:bg-red-800/50 dark:text-red-200"
-                                                            onClick={() => setDeleteModal({ isOpen: true, reservationId: reservation.id })}
-                                                        >
-                                                            Cancel
-                                                        </button>
-                                                    )}
+                                                {/* Show Cancel button only if status is exactly 'pending' */}
+                                                {reservation.status === 'pending' && !isWithin30Minutes(reservation.date_time) && (
+                                                    <button
+                                                        className="text-sm px-3 py-1 bg-red-100 hover:bg-red-200 text-red-800 rounded-full transition-colors dark:bg-red-900/30 dark:hover:bg-red-800/50 dark:text-red-200"
+                                                        onClick={() => setDeleteModal({ isOpen: true, reservationId: reservation.id })}
+                                                    >
+                                                        Cancel
+                                                    </button>
+                                                )}
                                                 <button
                                                     className="text-sm px-3 py-1 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 rounded-full transition-colors dark:bg-emerald-900/30 dark:hover:bg-emerald-800/50 dark:text-emerald-200"
                                                     onClick={() => navigate(`/patient/Appointment/${reservation.id}`)}

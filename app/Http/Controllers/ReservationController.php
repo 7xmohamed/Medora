@@ -195,16 +195,6 @@ class ReservationController extends Controller
                 ], 400);
             }
 
-            // Compare time within working hours
-            $startTime = Carbon::parse($request->reservation_date . ' ' . $availability->start_time);
-            $endTime = Carbon::parse($request->reservation_date . ' ' . $availability->end_time);
-
-            if ($requestDateTime < $startTime || $requestDateTime >= $endTime) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => "Doctor's working hours are between {$startTime->format('H:i')} and {$endTime->format('H:i')}"
-                ], 400);
-            }
 
             // Check for existing reservations at the same time
             $existingReservation = Reservation::where('doctor_id', $request->doctor_id)

@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Fragment } from 'react';
 import { FiUpload, FiFile, FiImage, FiDownload, FiTrash2 } from 'react-icons/fi';
+import { Dialog, Transition } from '@headlessui/react';
 import api from '../../services/api';
 
 const LabResultsTab = ({ role, appointmentId }) => {
@@ -8,6 +9,7 @@ const LabResultsTab = ({ role, appointmentId }) => {
   const [selectedFile, setSelectedFile] = useState(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
+  const [deleteModal, setDeleteModal] = useState({ isOpen: false, fileId: null });
 
   const fetchLabResults = async () => {
     setLoading(true);
@@ -67,7 +69,6 @@ const LabResultsTab = ({ role, appointmentId }) => {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Delete this file?')) return;
     try {
       await api.delete(`patient/delete-lab-result/${id}`);
       fetchLabResults();
@@ -152,7 +153,7 @@ const LabResultsTab = ({ role, appointmentId }) => {
                   <FiDownload className="text-green-600 cursor-pointer" title="Download" />
                 </a>
                 {role !== 'doctor' && (
-                  <button onClick={() => handleDelete(file.id)}>
+                  <button onClick={() => setDeleteModal({ isOpen: true, fileId: file.id })}>
                     <FiTrash2 className="text-red-600 cursor-pointer" title="Delete" />
                   </button>
                 )}
@@ -161,6 +162,65 @@ const LabResultsTab = ({ role, appointmentId }) => {
           ))
         )}
       </div>
+      {/* Delete Confirmation Modal */}
+      <Transition appear show={deleteModal.isOpen} as={Fragment}>
+        <Dialog as="div" className="relative z-50" onClose={() => setDeleteModal({ isOpen: false, fileId: null })}>
+          <Transition.Child
+            as={Fragment}
+            enter="ease-out duration-300"
+            enterFrom="opacity-0 scale-95"
+            enterTo="opacity-100 scale-100"
+            leave="ease-in duration-200"
+            leaveFrom="opacity-100 scale-100"
+            leaveTo="opacity-0 scale-95"
+          >
+            <div className="fixed inset-0 bg-black bg-opacity-25" />
+          </Transition.Child>
+          <div className="fixed inset-0 flex items-center justify-center p-4">
+            <Transition.Child
+              as={Fragment}
+              enter="ease-out duration-300"
+              enterFrom="opacity-0 scale-95"
+              enterTo="opacity-100 scale-100"
+              leave="ease-in duration-200"
+              leaveFrom="opacity-100 scale-100"
+              leaveTo="opacity-0 scale-95"
+            >
+              <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white dark:bg-gray-800 p-6 text-left align-middle shadow-xl transition-all">
+                <Dialog.Title as="h3" className="text-lg font-medium leading-6 text-gray-900 dark:text-white">
+                  Delete File
+                </Dialog.Title>
+                <div className="mt-2">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    Are you sure you want to delete this file? This action cannot be undone.
+                  </p>
+                </div>
+                <div className="mt-6 flex justify-end space-x-3">
+                  <button
+                    type="button"
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 rounded-lg"
+                    onClick={() => setDeleteModal({ isOpen: false, fileId: null })}
+                  >
+                    Keep File
+                  </button>
+                  <button
+                    type="button"
+                    className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg"
+                    onClick={async () => {
+                      if (deleteModal.fileId) {
+                        await handleDelete(deleteModal.fileId);
+                      }
+                      setDeleteModal({ isOpen: false, fileId: null });
+                    }}
+                  >
+                    Yes, Delete
+                  </button>
+                </div>
+              </Dialog.Panel>
+            </Transition.Child>
+          </div>
+        </Dialog>
+      </Transition>
     </div>
   );
 };
