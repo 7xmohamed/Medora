@@ -2,8 +2,18 @@
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { FaUserMd, FaStar, FaClock, FaHeart, FaStethoscope, FaSearch, FaSyncAlt } from 'react-icons/fa';
+import {useNavigate} from 'react-router-dom'
 
 export default function AboutUs() {
+
+    const navigate = useNavigate();
+
+
+    const handleChangeLocation = () => {
+        localStorage.removeItem('userLocation');
+        navigate('/', { state: { openMap: true } });
+    };
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white text-gray-900 dark:from-gray-900 dark:to-gray-800 dark:text-gray-100">
 
@@ -54,8 +64,8 @@ export default function AboutUs() {
                             <p className="text-lg text-gray-600 dark:text-gray-300 mb-8">
                                 We've helped over 50,000 patients access quality care while empowering healthcare professionals to focus on what matters most - patient outcomes.
                             </p>
-                            <Link
-                                to="/doctors"
+                            <button
+                                onClick={handleChangeLocation}
                                 className="inline-flex items-center px-6 py-3 rounded-lg bg-emerald-600 text-white font-medium hover:bg-emerald-700 dark:hover:bg-emerald-500 shadow-md hover:shadow-lg transition-all duration-300"
                             >
                                 <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -63,7 +73,7 @@ export default function AboutUs() {
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                                 </svg>
                                 Find Your Doctor
-                            </Link>
+                            </button>
                         </motion.div>
 
                         <motion.div
