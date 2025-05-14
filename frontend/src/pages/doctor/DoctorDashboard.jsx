@@ -184,7 +184,7 @@ export default function DoctorDashboard() {
         },
         {
             name: 'Average Rating',
-            value: dashboardData.stats.average_rating,
+            value: 'Not Available yet',
             icon: StarIcon,
             color: "yellow"
         }
@@ -262,12 +262,6 @@ export default function DoctorDashboard() {
                                         <CalendarIcon className="h-5 w-5 sm:h-6 sm:w-6 text-blue-500" />
                                         <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">Upcoming Appointments</h2>
                                     </div>
-                                    <Link
-                                        to="/doctor/appointments"
-                                        className="px-3 py-1 sm:px-4 sm:py-2 text-xs sm:text-sm bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
-                                    >
-                                        View All
-                                    </Link>
                                 </div>
                             </div>
                             <div className="p-4 sm:p-6">
