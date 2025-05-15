@@ -8,7 +8,7 @@ Medora is a modern and responsive healthcare platform built using **Laravel (API
 
 ## 📸 Demo
 
-![Medora Demo](/medora.png "Medora Website Demo")
+![Medora Demo](/imgs/medora.png "Medora Website Demo")
 
 ## ✨ Features
 
@@ -128,24 +128,33 @@ The frontend will be available at http://localhost:3000
 
 ```
 Medora/
+├── backend             # Laravel-based backend application
+│   ├── app               # Core application logic (controllers, models, etc.)
+│   ├── bootstrap           # Bootstrapping scripts (e.g., app.php)
+│   ├── config              # Configuration files for services and settings
+│   ├── database            # Database-related files (migrations, seeders, factories)
+│   ├── public              # Publicly accessible files (e.g., index.php, assets)
+│   ├── resources           # Blade views, uncompiled assets (Sass, JS, etc.)
+│   ├── routes              # API and web route definitions
+│   ├── storage             # Generated files, logs, cached views, session data
+│   ├── tests               # Unit and feature tests for backend logic
+│   └── vendor              # Composer dependencies (Laravel framework, third-party packages)
 │
-├-# Laravel API
-│   ├── app/                # Application core
-│   ├── config/             # Configuration files
-│   ├── database/           # Migrations and seeders
-│   ├── routes/             # API routes
-│   └── ...
+├── frontend            # React-based (or similar) frontend application
+│   ├── public            # Static assets (images, icons, robots.txt, etc.)
+│   └── src               # Source code for the frontend
+│       ├── components      # Reusable UI components
+│       ├── contexts        # React Context API providers for state management
+│       ├── data            # Mock data or static JSON/data files
+│       ├── layouts         # Layout wrappers (e.g., headers, footers)
+│       ├── lib             # Utility functions or libraries
+│       ├── pages           # Page-level components (organized by role or section)
+│       ├── routes          # Routing configuration for frontend navigation
+│       ├── services        # API calls to communicate with the backend
+│       ├── styles          # Global CSS/SCSS styling
+│       └── utils           # Helper functions and shared tools
 │
-├── frontend/               # React application
-│   ├── public/             # Static assets
-│   ├── src/                # Source files
-│   │   ├── components/     # Reusable React components
-│   │   ├── pages/          # Page components
-│   │   ├── services/       # API services
-│   │   └── ...
-│   └── ...
-│
-└── website-demo-image/     # Demo images
+└── imgs                # Miscellaneous images used for demos, documentation, or references    
 ```
 
 ## 👥 User Types
