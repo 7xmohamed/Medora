@@ -11,6 +11,7 @@ import { Dialog, Transition } from '@headlessui/react';
 import api from '../../services/api';
 import { toast } from 'react-toastify';
 import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom'
 
 const DoctorProfileDashboard = () => {
     const [doctor, setDoctor] = useState(null);
@@ -588,9 +589,12 @@ const DoctorProfileDashboard = () => {
                                     ) : (
                                         <div className="text-center py-8">
                                             <p className="text-gray-500 dark:text-gray-400 mb-4">No availability schedule set</p>
-                                            <button className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors">
-                                                Set Availability
-                                            </button>
+                                            <Link to='/admin/dashboard'>
+                                                <button className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors">
+                                                    Set Availability
+                                                </button>
+                                            </Link>
+
                                         </div>
                                     )}
                                 </div>
