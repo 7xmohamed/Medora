@@ -24,84 +24,87 @@ import HealthTips from './pages/medora/HealthTips';
 import DoctorPublicProfile from './pages/doctor/DoctorPublicProfile';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { NotificationsProvider } from './contexts/NotificationsContext';
 
 function App() {
   return (
     <AuthProvider>
       <DarkModeProvider>
-        <BrowserRouter>
-          <ScrollToTop />
-          <Routes>
-            {/* Admin Dashboard Route */}
-            <Route
-              path="admin/*"
-              element={
-                <PrivateRoute adminOnly>
-                  <AdminRoutes />
-                </PrivateRoute>
-              }
+        <NotificationsProvider>
+          <BrowserRouter>
+            <ScrollToTop />
+            <Routes>
+              {/* Admin Dashboard Route */}
+              <Route
+                path="admin/*"
+                element={
+                  <PrivateRoute adminOnly>
+                    <AdminRoutes />
+                  </PrivateRoute>
+                }
+              />
+
+              {/* Routes with Layout */}
+              <Route element={<Layout />}>
+                {/* Public routes */}
+                <Route index element={<HomePage />} />
+                <Route path="login" element={<LoginPage />} />
+                <Route path="register" element={<RegisterPage />} />
+                <Route path="about" element={<AboutUs />} />
+                <Route path="contact" element={<ContactUs />} />
+                <Route path='FAQs' element={<Faqs />} />
+                <Route path='PrivacyPolicy' element={<PrivacyPolicy />} />
+                <Route path='Terms' element={<Terms />} />
+                <Route path='HealthTips' element={<HealthTips />} />
+                <Route path="forget-password" element={<ForgotPassword />} />
+                <Route path="/doctor/public/:id" element={<DoctorPublicProfile />} />
+
+                {/* Role-specific routes */}
+                <Route
+                  path="doctor/*"
+                  element={
+                    <PrivateRoute roles={['doctor']}>
+                      <DoctorRoutes />
+                    </PrivateRoute>
+                  }
+                />
+
+                <Route
+                  path="patient/*"
+                  element={
+                    <PrivateRoute roles={['patient']}>
+                      <PatientRoutes />
+                    </PrivateRoute>
+                  }
+                />
+                <Route path="patient/reservation/:doctorId" element={<ReservationPayment />} />
+                <Route path="doctor/appointment/:appointmentId" element={<AppointmentDetails />} />
+                <Route path="patient/appointment/:appointmentId" element={<AppointmentDetails />} />
+              </Route>
+
+              {/* Location-based routes (outside Layout to avoid conflicts) */}
+              <Route path=":lang/:country/:city" element={<HomeWithLocation />} />
+
+              {/* Explicit 404 route */}
+              <Route path="/404" element={<NotFoundPage />} />
+
+              {/* Catch-all for unmatched routes */}
+              <Route path="*" element={<Navigate to="/404" replace />} />
+            </Routes>
+            <ToastContainer
+              position="top-right"
+              autoClose={3000}
+              hideProgressBar={false}
+              newestOnTop
+              closeOnClick
+              rtl={false}
+              pauseOnFocusLoss
+              draggable
+              pauseOnHover
+              theme="colored"
             />
-
-            {/* Routes with Layout */}
-            <Route element={<Layout />}>
-              {/* Public routes */}
-              <Route index element={<HomePage />} />
-              <Route path="login" element={<LoginPage />} />
-              <Route path="register" element={<RegisterPage />} />
-              <Route path="about" element={<AboutUs />} />
-              <Route path="contact" element={<ContactUs />} />
-              <Route path='FAQs' element={<Faqs />} />
-              <Route path='PrivacyPolicy' element={<PrivacyPolicy />} />
-              <Route path='Terms' element={<Terms />} />
-              <Route path='HealthTips' element={<HealthTips />} />
-              <Route path="forget-password" element={<ForgotPassword />} />
-              <Route path="/doctor/public/:id" element={<DoctorPublicProfile />} />
-
-              {/* Role-specific routes */}
-              <Route
-                path="doctor/*"
-                element={
-                  <PrivateRoute roles={['doctor']}>
-                    <DoctorRoutes />
-                  </PrivateRoute>
-                }
-              />
-
-              <Route
-                path="patient/*"
-                element={
-                  <PrivateRoute roles={['patient']}>
-                    <PatientRoutes />
-                  </PrivateRoute>
-                }
-              />
-              <Route path="patient/reservation/:doctorId" element={<ReservationPayment />} />
-              <Route path="doctor/appointment/:appointmentId" element={<AppointmentDetails />} />
-              <Route path="patient/appointment/:appointmentId" element={<AppointmentDetails />} />
-            </Route>
-
-            {/* Location-based routes (outside Layout to avoid conflicts) */}
-            <Route path=":lang/:country/:city" element={<HomeWithLocation />} />
-
-            {/* Explicit 404 route */}
-            <Route path="/404" element={<NotFoundPage />} />
-
-            {/* Catch-all for unmatched routes */}
-            <Route path="*" element={<Navigate to="/404" replace />} />
-          </Routes>
-          <ToastContainer
-            position="top-right"
-            autoClose={3000}
-            hideProgressBar={false}
-            newestOnTop
-            closeOnClick
-            rtl={false}
-            pauseOnFocusLoss
-            draggable
-            pauseOnHover
-            theme="colored"
-          />
-        </BrowserRouter>
+          </BrowserRouter>
+        </NotificationsProvider>
       </DarkModeProvider>
     </AuthProvider>
   );

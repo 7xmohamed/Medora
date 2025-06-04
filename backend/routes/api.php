@@ -10,6 +10,7 @@ use App\Http\Controllers\PatientController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\AppointmentController;
 use App\Http\Controllers\ReservationController;
+use App\Http\Controllers\NotificationController;
 
 // Public routes
 Route::post('/contact', [ContactController::class, 'store']);
@@ -41,12 +42,12 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/role', [AppointmentController::class, 'role']);
     Route::post('/patient/profile/update', [PatientController::class, 'updateProfile']);
     Route::post('/patient/profile/picture', [PatientController::class, 'updateProfilePicture']);
-    
+
     // -------------------------------
 
 
     // Admin routes ----------------------
-    Route::prefix('admin')->middleware(['role:admin'])->group(function() {
+    Route::prefix('admin')->middleware(['role:admin'])->group(function () {
         Route::get('/dashboard', [AdminController::class, 'dashboardStats']);
         Route::get('/users', [AdminController::class, 'getUsers']);
         Route::delete('/users/{id}', [AdminController::class, 'deleteUser']);
@@ -60,6 +61,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/reservation-stats', [AdminController::class, 'getReservationStats']);
         Route::get('/doctor-specialties', [AdminController::class, 'getDoctorSpecialties']);
         Route::get('/monthly-users', [AdminController::class, 'getMonthlyUsers']);
+        Route::get('/notifications', [NotificationController::class, 'index']);
+        Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
+        Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead']);
     });
     // -----------------------------
 
@@ -82,6 +86,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::delete('/doctor-report/{id}', [ReportController::class, 'deleteDoctorReport']);
         Route::delete('/prescription/{id}', [ReportController::class, 'deletePrescription']);
         Route::delete('/analysis-request/{id}', [ReportController::class, 'deleteAnalysisRequest']);
+        Route::get('/notifications', [NotificationController::class, 'index']);
+        Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
+        Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead']);
     });
     // ------------------------------
 
@@ -91,7 +98,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/profile', [PatientController::class, 'getProfile']);
         Route::post('/profile/update', [PatientController::class, 'updateProfile']);
         Route::post('/profile/picture', [PatientController::class, 'updateProfilePicture']);
-        Route::get('/doctorsbyid/{doctorId}',[DoctorController::class, 'getDoctorById']);
+        Route::get('/doctorsbyid/{doctorId}', [DoctorController::class, 'getDoctorById']);
         Route::post('/reservations', [ReservationController::class, 'createReservation']);
         Route::get('/getDoctorReservations/{doctorId}', [ReservationController::class, 'getDoctorReservations']);
         Route::get('/getpatientreservations', [ReservationController::class, 'getPatientReservations']);

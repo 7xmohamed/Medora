@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { SunIcon, MoonIcon, Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline';
 import { useDarkMode } from '../../contexts/DarkModeContext';
 import { UserCircleIcon } from '@heroicons/react/24/solid';
+import NotificationsDropdown from '../shared/NotificationsDropdown';
 
 export default function Navbar() {
     const { user, logout } = useAuth();
@@ -95,6 +96,10 @@ export default function Navbar() {
                                 <MoonIcon className="h-5 w-5" />
                             )}
                         </motion.button>
+
+                        {user && (user.role === 'admin' || user.role === 'doctor') && (
+                            <NotificationsDropdown />
+                        )}
 
                         {user ? (
                             <>

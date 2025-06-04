@@ -10,6 +10,7 @@ use App\Models\PaymentRefund;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
+use App\Models\Notification;
 
 class ReservationController extends Controller
 {
@@ -51,12 +52,12 @@ class ReservationController extends Controller
 
             $start = Carbon::parse($availability->start_time);
             $end = Carbon::parse($availability->end_time);
-            
+
             $lastPossibleSlot = $end->copy()->subMinutes(30);
-            
+
             $slots = [];
             $current = $start->copy();
-            
+
             if ($current->minute % 30 !== 0) {
                 $current->minute(ceil($current->minute / 30) * 30);
             }
@@ -73,7 +74,6 @@ class ReservationController extends Controller
                 'status' => 'success',
                 'data' => $slots
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
@@ -133,7 +133,7 @@ class ReservationController extends Controller
     {
         try {
             $user = $request->user();
-            
+
             if (!$user || $user->role !== 'patient') {
                 return response()->json([
                     'status' => 'error',
@@ -148,7 +148,7 @@ class ReservationController extends Controller
                     'message' => 'Patient profile not found'
                 ], 404);
             }
-        
+
             $validator = Validator::make($request->all(), [
                 'doctor_id' => 'required|exists:doctors,id',
                 'reservation_date' => 'required|date|after_or_equal:today',
@@ -159,7 +159,7 @@ class ReservationController extends Controller
                 'reason' => 'required|string|max:500',
                 'price' => 'required|numeric|gt:0'
             ]);
-        
+
             if ($validator->fails()) {
                 return response()->json([
                     'status' => 'error',
@@ -170,7 +170,7 @@ class ReservationController extends Controller
             // Validate time format and 30-minute intervals
             $time = Carbon::parse($request->reservation_time);
             $minutes = (int)$time->format('i');
-            
+
             if ($minutes % 30 !== 0) {
                 return response()->json([
                     'status' => 'error',
@@ -239,18 +239,24 @@ class ReservationController extends Controller
                 throw new \Exception('Failed to save reservation');
             }
 
+            // Create notification for doctor
+            Notification::create([
+                'user_id' => $doctor->user_id,
+                'type' => 'new_reservation',
+                'message' => "New appointment request from {$patient->name}",
+                'data' => ['appointment_id' => $reservation->id]
+            ]);
+
             return response()->json([
                 'status' => 'success',
-                'message' => 'Reservation created successfully',
-                'data' => $reservation
+                'message' => 'Reservation created successfully'
             ], 201);
-
         } catch (\Exception $e) {
             \Log::error('Reservation creation failed:', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
-            
+
             return response()->json([
                 'status' => 'error',
                 'message' => 'Failed to create reservation. Please try again later.'
@@ -326,13 +332,13 @@ class ReservationController extends Controller
                 ->orderBy('reservation_date', 'desc')
                 ->orderBy('reservation_time', 'desc')
                 ->get();
-                
+
             return response()->json([
                 'status' => 'success',
                 'data' => $reservations->map(function ($reservation) {
                     try {
                         $dateTime = Carbon::parse($reservation->reservation_date . ' ' . $reservation->reservation_time);
-                        
+
                         return [
                             'id' => $reservation->id,
                             'doctor_name' => $reservation->doctor->user->name ?? 'Unknown Doctor',
@@ -346,7 +352,7 @@ class ReservationController extends Controller
                             'reservation_id' => $reservation->id,
                             'error' => $e->getMessage()
                         ]);
-                        
+
                         // Return a safely formatted version if date parsing fails
                         return [
                             'id' => $reservation->id,
@@ -364,7 +370,7 @@ class ReservationController extends Controller
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
-            
+
             return response()->json([
                 'status' => 'error',
                 'message' => 'Failed to fetch reservations',
@@ -385,7 +391,7 @@ class ReservationController extends Controller
             'data' => $reservation
         ]);
     }
-    
+
     public function cancelReservation($reservationId)
     {
         DB::beginTransaction();
@@ -434,6 +440,19 @@ class ReservationController extends Controller
                     'refund_date' => now()
                 ]);
             }
+
+            // Create notification for doctor
+            Notification::create([
+                'user_id' => $reservation->doctor->user_id,
+                'type' => 'reservation_canceled',
+                'message' => "Appointment canceled by {$reservation->patient->user->name}",
+                'data' => [
+                    'reservation_id' => $reservation->id,
+                    'patient_name' => $reservation->patient->user->name,
+                    'date' => $reservation->reservation_date,
+                    'time' => $reservation->reservation_time
+                ]
+            ]);
 
             $doctor->refresh();
 
@@ -484,7 +503,7 @@ class ReservationController extends Controller
                 ->whereDate('reservation_date', $request->date)
                 ->whereIn('reservation_status', ['pending', 'confirmed'])
                 ->get(['reservation_time', 'reservation_status'])
-                ->map(function($reservation) {
+                ->map(function ($reservation) {
                     return [
                         'time' => $reservation->reservation_time,
                         'status' => $reservation->reservation_status
